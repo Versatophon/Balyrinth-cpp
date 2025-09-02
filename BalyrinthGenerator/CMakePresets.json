@@ -1,0 +1,21 @@
+{
+    "version": 8,
+    "cmakeMinimumRequired": {
+      "major": 3,
+      "minor": 25  
+    },
+    "configurePresets": [
+        {
+            "name": "default",
+            "displayName": "configure toolchain",
+            "description": "description",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_TOOLCHAIN_FILE": "/opt/vcpkg/scripts/buildsystems/vcpkg.cmake",
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/${presetName}"
+            }
+        }
+    ]
+}
