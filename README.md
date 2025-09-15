@@ -11,11 +11,13 @@ All genereations are reproductible from a seed.
 
 Some rendered samples:
 
-![BloomSquare](./images/BloomSquare.png){height=100}
-![BloomSquareTore](./images/BloomSquareTore.png){height=100}
-![BloomSquareToreContiguous](./images/BloomSquareToreContiguous.png){height=100}
-![BloomSquareToreWithNeighbors](./images/BloomSquareToreWithNeighbors.png){height=100}
-![BloomSqureToreWithNeighborsWithoutCell](./images/BloomSqureToreWithNeighborsWithoutCell.png){height=100}
+<div style="padding: 20px;">
+	<img src="./images/BloomSquare.png" alt="BloomSquare" height="100"/>
+	<img src="./images/BloomSquareTore.png" alt="BloomSquareTore" height="100"/>
+	<img src="./images/BloomSquareToreContiguous.png" alt="BloomSquareToreContiguous" height="100"/>
+	<img src="./images/BloomSquareToreWithNeighbors.png" alt="BloomSquareToreWithNeighbors" height="100"/>
+	<img src="./images/BloomSqureToreWithNeighborsWithoutCell.png" alt="BloomSqureToreWithNeighborsWithoutCell" height="100"/>
+</div>
 
 ## Build 
 
