@@ -36,7 +36,7 @@ protected:
 
     float mLineOffset = 1.f;
     Shape* mShape = nullptr;
-    Vec3i mSpaceSize = { 1, 1, 1 };
+    Vec3 mSpaceSize = { 1, 1, 1 };
     float mHalfWidth = .5f;
 
     void DrawNode(uint32_t pIndex, bool pInit = false);

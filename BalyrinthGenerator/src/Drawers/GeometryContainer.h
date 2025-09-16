@@ -17,9 +17,8 @@ struct MazeGeometryParameters
     size_t Width = 10;
     size_t Height = 10;
 
-    float CellWidth = 50.f;
-    float PointWidth = 25.f;
-    float LineWidth = 30.f;
+    float PointWidth = .5f;
+    float LineWidth = .25f;
 };
 
 class GeometryContainer

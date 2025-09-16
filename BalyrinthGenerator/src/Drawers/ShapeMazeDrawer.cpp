@@ -12,7 +12,7 @@ void ShapeMazeDrawer::DrawEdge(DrawRectangleFunc pFunction, uint32_t pNodeIndex0
     const Vec2& lNode0Position = mNodePositions[pNodeIndex0];
     const Vec2& lNode1Position = mNodePositions[pNodeIndex1];
 
-    Vec3i lSpaceDelta = mShape->GetUnitSpaceDelta(pNodeIndex0, pNodeIndex1);
+    Vec3 lSpaceDelta = mShape->GetUnitSpaceDelta(pNodeIndex0, pNodeIndex1);
 
     if ((abs(lSpaceDelta.X) + abs(lSpaceDelta.Y) + abs(lSpaceDelta.Z)) == 0)
     {
@@ -20,61 +20,61 @@ void ShapeMazeDrawer::DrawEdge(DrawRectangleFunc pFunction, uint32_t pNodeIndex0
         Vec3 lMax{ std::max(lNode0Position.X, lNode1Position.X) + mLineOffset, std::max(lNode0Position.Y, lNode1Position.Y) + mLineOffset, -3 };
         (this->*pFunction)(lMin, lMax);
     }
-    else if (lSpaceDelta.X > 0 && true)
+    else if (lSpaceDelta.X < 0 && true)
     {
-        Vec3i lNodeNormalizedPos1 = mShape->GetNodeNormalizedPosition(pNodeIndex1);
-        Vec2 lVirtualalNode0Position = { (lSpaceDelta.X * mSpaceSize.X + lNodeNormalizedPos1.X) * mMazeGeometryParameters.CellWidth,
-                                         (lSpaceDelta.Y * mSpaceSize.Y + lNodeNormalizedPos1.Y) * mMazeGeometryParameters.CellWidth };
+        Vec3 lNodeNormalizedPos1 = mShape->GetNodeNormalizedPosition(pNodeIndex1);
+        Vec2 lVirtualalNode0Position = { (-lSpaceDelta.X * mSpaceSize.X + lNodeNormalizedPos1.X),
+                                         (-lSpaceDelta.Y * mSpaceSize.Y + lNodeNormalizedPos1.Y) };
 
 
         Vec3 lMin{ lNode0Position.X - mLineOffset, lNode0Position.Y - mLineOffset, -3 };
         Vec3 lMax{ lMin.X + mHalfWidth, lVirtualalNode0Position.Y + mLineOffset, -3 };
         (this->*pFunction)(lMin, lMax);
 
-        lMin.X -= (mMazeGeometryParameters.Width * mMazeGeometryParameters.CellWidth) - mHalfWidth;
-        lMax.X -= (mMazeGeometryParameters.Width * mMazeGeometryParameters.CellWidth) - mHalfWidth;
+        lMin.X -= mMazeGeometryParameters.Width - mHalfWidth;
+        lMax.X -= mMazeGeometryParameters.Width - mHalfWidth;
         (this->*pFunction)(lMin, lMax);
     }
-    else if (lSpaceDelta.X < 0 && true)
+    else if (lSpaceDelta.X > 0 && true)
     {
-        Vec3i lNodeNormalizedPos1 = mShape->GetNodeNormalizedPosition(pNodeIndex1);
-        Vec2 lVirtualNode0Position = { (lSpaceDelta.X * mSpaceSize.X + lNodeNormalizedPos1.X) * mMazeGeometryParameters.CellWidth,
-                                       (lSpaceDelta.Y * mSpaceSize.Y + lNodeNormalizedPos1.Y) * mMazeGeometryParameters.CellWidth };
+        Vec3 lNodeNormalizedPos1 = mShape->GetNodeNormalizedPosition(pNodeIndex1);
+        Vec2 lVirtualNode0Position = { -lSpaceDelta.X * mSpaceSize.X + lNodeNormalizedPos1.X,
+                                       -lSpaceDelta.Y * mSpaceSize.Y + lNodeNormalizedPos1.Y };
 
         Vec3 lMax{ lNode0Position.X + mLineOffset, lNode0Position.Y + mLineOffset, -3 };
         Vec3 lMin{ (lMax.X + lVirtualNode0Position.X - mLineOffset) / 2, lVirtualNode0Position.Y - mLineOffset, -3 };
         (this->*pFunction)(lMin, lMax);
 
-        lMin.X += (mMazeGeometryParameters.Width * mMazeGeometryParameters.CellWidth) - mHalfWidth;
-        lMax.X += (mMazeGeometryParameters.Width * mMazeGeometryParameters.CellWidth) - mHalfWidth;
+        lMin.X += mMazeGeometryParameters.Width - mHalfWidth;
+        lMax.X += mMazeGeometryParameters.Width - mHalfWidth;
         (this->*pFunction)(lMin, lMax);
     }
-    else if (lSpaceDelta.Y > 0 && true)
+    else if (lSpaceDelta.Y < 0 && true)
     {
-        Vec3i lNodeNormalizedPos1 = mShape->GetNodeNormalizedPosition(pNodeIndex1);
-        Vec2 lVirtualalNode0Position = { (lSpaceDelta.X * mSpaceSize.X + lNodeNormalizedPos1.X) * mMazeGeometryParameters.CellWidth,
-                                         (lSpaceDelta.Y * mSpaceSize.Y + lNodeNormalizedPos1.Y) * mMazeGeometryParameters.CellWidth };
+        Vec3 lNodeNormalizedPos1 = mShape->GetNodeNormalizedPosition(pNodeIndex1);
+        Vec2 lVirtualalNode0Position = { -lSpaceDelta.X * mSpaceSize.X + lNodeNormalizedPos1.X,
+                                         -lSpaceDelta.Y * mSpaceSize.Y + lNodeNormalizedPos1.Y };
 
         Vec3 lMin{ lNode0Position.X - mLineOffset, lNode0Position.Y - mLineOffset, -3 };
         Vec3 lMax{ lVirtualalNode0Position.X + mLineOffset, (lMin.Y + lVirtualalNode0Position.Y + mLineOffset) / 2, -3 };
         (this->*pFunction)(lMin, lMax);
 
-        lMin.Y -= (mMazeGeometryParameters.Height * mMazeGeometryParameters.CellWidth) - mHalfWidth;
-        lMax.Y -= (mMazeGeometryParameters.Height * mMazeGeometryParameters.CellWidth) - mHalfWidth;
+        lMin.Y -= mMazeGeometryParameters.Height - mHalfWidth;
+        lMax.Y -= mMazeGeometryParameters.Height - mHalfWidth;
         (this->*pFunction)(lMin, lMax);
     }
-    else if (lSpaceDelta.Y < 0 && true)
+    else if (lSpaceDelta.Y > 0 && true)
     {
-        Vec3i lNodeNormalizedPos1 = mShape->GetNodeNormalizedPosition(pNodeIndex1);
-        Vec2 lVirtualNode0Position = { (lSpaceDelta.X * mSpaceSize.X + lNodeNormalizedPos1.X) * mMazeGeometryParameters.CellWidth,
-                                       (lSpaceDelta.Y * mSpaceSize.Y + lNodeNormalizedPos1.Y) * mMazeGeometryParameters.CellWidth };
+        Vec3 lNodeNormalizedPos1 = mShape->GetNodeNormalizedPosition(pNodeIndex1);
+        Vec2 lVirtualNode0Position = { -lSpaceDelta.X * mSpaceSize.X + lNodeNormalizedPos1.X,
+                                       -lSpaceDelta.Y * mSpaceSize.Y + lNodeNormalizedPos1.Y };
 
         Vec3 lMax{ lNode0Position.X + mLineOffset, lNode0Position.Y + mLineOffset, -3 };
         Vec3 lMin{ lVirtualNode0Position.X - mLineOffset, (lMax.Y + lVirtualNode0Position.Y - mLineOffset) / 2, -3 };
         (this->*pFunction)(lMin, lMax);
 
-        lMin.Y += (mMazeGeometryParameters.Height * mMazeGeometryParameters.CellWidth) - mHalfWidth;
-        lMax.Y += (mMazeGeometryParameters.Height * mMazeGeometryParameters.CellWidth) - mHalfWidth;
+        lMin.Y += mMazeGeometryParameters.Height - mHalfWidth;
+        lMax.Y += mMazeGeometryParameters.Height - mHalfWidth;
         (this->*pFunction)(lMin, lMax);
     }
 }

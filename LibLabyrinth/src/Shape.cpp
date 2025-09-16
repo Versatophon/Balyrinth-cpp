@@ -53,17 +53,17 @@ public:
 		return mTopology;
 	}
 	
-	Vec3i GetNodeNormalizedPosition(uint32_t pIndex) override
+	Vec3 GetNodeNormalizedPosition(uint32_t pIndex) override
 	{
-		return Vec3i(pIndex % mWidth, pIndex / mWidth, 0);
+		return Vec3(pIndex % mWidth, pIndex / mWidth, 0);
 	}
 
-	Vec3i GetSpaceSize() override
+	Vec3 GetSpaceSize() override
 	{
-		return Vec3i(mWidth, mHeight, 1);
+		return Vec3(mWidth, mHeight, 1);
 	}
 
-	Vec3i GetUnitSpaceDelta(uint32_t pIndex0, uint32_t pIndex1) override
+	Vec3 GetUnitSpaceDelta(uint32_t pIndex0, uint32_t pIndex1) override
 	{
 		return { 0, 0, 0 };
 	}
@@ -81,8 +81,8 @@ public:
 		mWidth(pWidth),
 		mHeight(pHeight)
 	{
-		mUnitSpaceDividerX = (mWidth == 1 ? INT32_MIN : int32_t(1 - mWidth));
-		mUnitSpaceDividerY = (mHeight == 1 ? INT32_MIN : int32_t(1 - mHeight));
+		//mUnitSpaceDividerX = (mWidth == 1 ? INT32_MIN : int32_t( - mWidth));
+		//mUnitSpaceDividerY = (mHeight == 1 ? INT32_MIN : int32_t( - mHeight));
 
 		mRoomType = RoomType::Square;
 		mTopology = new Topology(pWidth * pHeight);
@@ -123,30 +123,43 @@ public:
 		return mTopology;
 	}
 	
-	Vec3i GetNodeNormalizedPosition(uint32_t pIndex) override
+	Vec3 GetNodeNormalizedPosition(uint32_t pIndex) override
 	{
-		return Vec3i(pIndex % mWidth, pIndex / mWidth, 0);
+		return Vec3(pIndex % mWidth, pIndex / mWidth, 0);
 	}
 
-	Vec3i GetSpaceSize() override
+	Vec3 GetSpaceSize() override
 	{
-		return Vec3i(mWidth, mHeight, 1);
+		return Vec3(mWidth, mHeight, 1);
 	}
 
-	Vec3i GetUnitSpaceDelta(uint32_t pIndex0, uint32_t pIndex1) override
+	Vec3 GetUnitSpaceDelta(uint32_t pIndex0, uint32_t pIndex1) override
 	{
-		Vec3i lPos0 = GetNodeNormalizedPosition(pIndex0);
-		Vec3i lPos1 = GetNodeNormalizedPosition(pIndex1);
+		Vec3 lPos0 = GetNodeNormalizedPosition(pIndex0);
+		Vec3 lPos1 = GetNodeNormalizedPosition(pIndex1);
 
-		return {(lPos1.X - lPos0.X) / mUnitSpaceDividerX, (lPos1.Y - lPos0.Y) / mUnitSpaceDividerY, 0 };
+		//return {(lPos1.X - lPos0.X) / mUnitSpaceDividerX, (lPos1.Y - lPos0.Y) / mUnitSpaceDividerY, 0 };
+
+		float lDeltaX = lPos1.X - lPos0.X;
+		float lDeltaY = lPos1.Y - lPos0.Y;
+
+		float lSignX = lDeltaX < 0.f ? -1.f : 1.f;
+		float lSignY = lDeltaY < 0.f ? -1.f : 1.f;
+
+		return
+		{
+			fabs(lDeltaX) > 1.01f ? lSignX : 0.f,
+			fabs(lDeltaY) > 1.01f ? lSignY : 0.f,
+			0
+		};
 	}
 
 private:
 	uint32_t mWidth = 10;
 	uint32_t mHeight = 10;
 
-	int32_t mUnitSpaceDividerX = 1;
-	int32_t mUnitSpaceDividerY = 1;
+	//int32_t mUnitSpaceDividerX = 1;
+	//int32_t mUnitSpaceDividerY = 1;
 };
 
 Shape* GenerateSquaresOnRectShape(Parameters& pParameters)

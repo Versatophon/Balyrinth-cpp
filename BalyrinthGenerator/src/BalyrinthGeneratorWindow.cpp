@@ -288,8 +288,8 @@ int32_t BalyrinthGeneratorWindow::Event(SDL_Event *pEvent)
             break;
 
         case SDLK_C:
-            mModels[0]._03 = GetWidth()/2;
-            mModels[0]._13 = GetHeight()/2;
+            //mModels[0]._03 = GetWidth()/2;
+            //mModels[0]._13 = GetHeight()/2;
             break;
 
         default:
@@ -301,22 +301,22 @@ int32_t BalyrinthGeneratorWindow::Event(SDL_Event *pEvent)
         if (SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON_LMASK)
         {
             //TODO: should we move camera instead of data
-            mModels[0]._03 += pEvent->motion.xrel;
-            mModels[0]._13 -= pEvent->motion.yrel;
+            //mModels[0]._03 += pEvent->motion.xrel;
+            //mModels[0]._13 -= pEvent->motion.yrel;
         }
         break;
     case SDL_EVENT_MOUSE_WHEEL:
     {
         float lZoomFactor = 1.2f;
         //std::cout << pEvent->motion.x << ";" << pEvent->motion.y << std::endl;
-        if (mMazeGeometryParameters.CellWidth * pow(lZoomFactor, pEvent->motion.x) >= 2
-            && mMazeGeometryParameters.LineWidth * pow(lZoomFactor, pEvent->motion.x) >= 0.5f)
-        {
-            mMazeGeometryParameters.PointWidth *= pow(lZoomFactor, pEvent->motion.x);
-            mMazeGeometryParameters.CellWidth *= pow(lZoomFactor, pEvent->motion.x);
-            mMazeGeometryParameters.LineWidth *= pow(lZoomFactor, pEvent->motion.x);
-            mLabyrinthStepper.ForceRedraw();
-        }
+        //if (mMazeGeometryParameters.CellWidth * pow(lZoomFactor, pEvent->motion.x) >= 2
+        //    && mMazeGeometryParameters.LineWidth * pow(lZoomFactor, pEvent->motion.x) >= 0.5f)
+        //{
+        //    mMazeGeometryParameters.PointWidth *= pow(lZoomFactor, pEvent->motion.x);
+        //    mMazeGeometryParameters.CellWidth *= pow(lZoomFactor, pEvent->motion.x);
+        //    mMazeGeometryParameters.LineWidth *= pow(lZoomFactor, pEvent->motion.x);
+        //    mLabyrinthStepper.ForceRedraw();
+        //}
     }
         
         break;
@@ -405,8 +405,8 @@ void BalyrinthGeneratorWindow::Render()
     }
 
     {
-        float lHOffset = mMazeGeometryParameters.CellWidth * mMazeGeometryParameters.Width;
-        float lVOffset = mMazeGeometryParameters.CellWidth * mMazeGeometryParameters.Height;
+        float lHOffset = mMazeGeometryParameters.Width;
+        float lVOffset = mMazeGeometryParameters.Height;
 
         mModels[1]._03 = mModels[0]._03 + lHOffset;
         mModels[1]._13 = mModels[0]._13;
@@ -492,7 +492,7 @@ void BalyrinthGeneratorWindow::Render()
 void BalyrinthGeneratorWindow::Resize(const IVec2 pSize)
 {
     mViewport->SetSize(pSize);
-    mMatrices[0] = GenOrthographic(0, pSize.Width, 0, pSize.Height, .2f, 500.f);
+    mMatrices[0] = GenOrthographic(-10 + 0,-10 + pSize.Width/30.f, -10 + 0, -10 + pSize.Height/30.f, .2f, 500.f);
 }
 
 void BalyrinthGeneratorWindow::RegenerateLabyrinth()
@@ -539,9 +539,8 @@ void BalyrinthGeneratorWindow::ProcessImGui()
             ImGui::Checkbox("Show Edges", &mRenderEdges);
             ImGui::Checkbox("Show Path", &mRenderPath);
 
-            lDrawParamChanged |= ImGui::DragFloat("Cell Witdth", &mMazeGeometryParameters.CellWidth, 0.5f, 3.f, 50.f);
-            lDrawParamChanged |= ImGui::DragFloat("Point Width", &mMazeGeometryParameters.PointWidth, 0.5f, 1.f, 50.f);
-            lDrawParamChanged |= ImGui::DragFloat("Line Width", &mMazeGeometryParameters.LineWidth, 0.5f, 1.f, 50.f);
+            lDrawParamChanged |= ImGui::DragFloat("Point Width", &mMazeGeometryParameters.PointWidth, 0.005f, .005f, 1.1f);
+            lDrawParamChanged |= ImGui::DragFloat("Line Width", &mMazeGeometryParameters.LineWidth, 0.005f, .005f, 1.1f);
 
             ImGui::ColorEdit4("Background Color", (&mBackgroundColor.R));
             ImGui::ColorEdit4("Lines Color", (&mColors[0].R));

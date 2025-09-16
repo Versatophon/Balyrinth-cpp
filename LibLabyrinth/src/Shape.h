@@ -45,7 +45,7 @@ struct Parameters
 enum class RoomType
 {
 	Undefined,
-	Triangular,//Has 6 connections 2 per edge, to get a kin of direction 
+	Triangular,//Has 6 connections 2 per edge, to get a kind of direction 
 	Square,
 	Hexagonal,
 	Octogonal,
@@ -59,9 +59,9 @@ public:
 	virtual ~Shape();
 
 	virtual Topology* GetTopology() = 0;
-	virtual Vec3i GetNodeNormalizedPosition(uint32_t pIndex) = 0;
-	virtual Vec3i GetSpaceSize() = 0;
-	virtual Vec3i GetUnitSpaceDelta(uint32_t pIndex0, uint32_t pIndex1) = 0;
+	virtual Vec3 GetNodeNormalizedPosition(uint32_t pIndex) = 0;
+	virtual Vec3 GetSpaceSize() = 0;
+	virtual Vec3 GetUnitSpaceDelta(uint32_t pIndex0, uint32_t pIndex1) = 0;
 
 protected:
 	Topology* mTopology = nullptr;

@@ -27,7 +27,7 @@ void MazeDrawer::AddFirstNode(uint32_t pNodeIndex)
     {
         for (size_t i = 0; i < mMazeGeometryParameters.Width; ++i)
         {
-            mNodePositions[j * mMazeGeometryParameters.Width + i] = Vec2{ i * mMazeGeometryParameters.CellWidth, j * mMazeGeometryParameters.CellWidth };
+            mNodePositions[j * mMazeGeometryParameters.Width + i] = Vec2{ float(i), float(j) };
         }
     }
 
@@ -60,7 +60,7 @@ void MazeDrawer::InitStaticVariables()
     mLineOffset = mMazeGeometryParameters.LineWidth / 2.f;
     mShape = mGeometryContainer.GetShape();
     mSpaceSize = mShape->GetSpaceSize();
-    mHalfWidth = (mMazeGeometryParameters.CellWidth / 2) + mLineOffset;
+    mHalfWidth = (1.f / 2.f) + mLineOffset;
 }
 
 void MazeDrawer::DrawNode(uint32_t pIndex, bool pInit)
