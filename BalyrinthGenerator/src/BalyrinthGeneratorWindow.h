@@ -15,8 +15,11 @@ extern "C" {
 #include <Shape.h>
 #include <Labyrinth.h>
 #include <Seed.h>
+#include <Vector2f.h>
+#include <Transformf.h>
 
-#include "Vec2.h"
+#include <Node.h>//INVALID_NODE_INDEX
+
 #include "Drawers/GeometryContainer.h"
 
 class Viewport;
@@ -25,7 +28,8 @@ class Ubo;
 class Vao;
 class ArrayBuffer;
 
-struct FMat4;
+struct Matrix4f;
+struct Vector2i;
 
 template <typename T> struct SelectableGroup
 {
@@ -44,7 +48,7 @@ template <typename T> struct SelectableGroup
 };
 
 //TODO: Use mask from black & white image to generate topology, logo, pokemon (pikachu head) 
-//TODO: Use progressive generation(sort of laser engraver) to display time
+//TODO: Use progressive generation(sort of laser engraver) to display time as number made from mazes
 //TODO: ajoute feature qui montre la limite de la forme de base avec un rectangle englobant
 //TODO: ajoute un moyen d'enregistrer une topologie dans un fichier
 
@@ -63,7 +67,7 @@ public:
     ~BalyrinthGeneratorWindow();
 
     Shape* GetShape() override;
-    std::vector<Vec2>& GetNodePositions() override;
+    std::vector<Vector2f>& GetNodePositions() override;
     MazeGeometryParameters& GetMazeGeometryParameters() override;
     std::vector<float>& GetVerticesToAdd() override;
     std::vector<float>& GetForNodesVerticesToAdd() override;
@@ -79,7 +83,7 @@ protected:
     int32_t Iterate() override;
     void Quit() override;
     void Render() override;
-    void Resize(const IVec2 pSize) override;
+    void Resize(const Vector2i pSize) override;
 
 private:
     bool mIsControlWindowVisible = true;
@@ -108,7 +112,7 @@ private:
 
     void RegenerateLabyrinth();
 
-    size_t mStartingPointIndex = UINT32_MAX;
+    size_t mStartingPointIndex = INVALID_NODE_INDEX;
 
     void ProcessImGui();
 
@@ -119,9 +123,9 @@ private:
     SelectableGroup<Algorithm> mAlgorithms;
 
     std::unordered_set<uint32_t> mAlreadyProcessed;
-    std::queue<std::pair<uint32_t, Vec2>> mNodesToProcess;
+    std::queue<std::pair<uint32_t, Vector2f>> mNodesToProcess;
 
-    std::vector<Vec2> mNodePositions;
+    std::vector<Vector2f> mNodePositions;
 
     Viewport* mViewport = nullptr;
 
@@ -142,15 +146,22 @@ private:
     std::vector<uint8_t> mNodesNeigborCount;
 
 
+    Vector3f mRotationCenter;
+
+    Transformf mMainTransform;
+    std::vector<Transformf> mNeighborTransforms;
+
     // Longuest path
     ArrayBuffer** mPathVBufs = nullptr;
     Vao* mPathVao = nullptr;
     size_t mPathVertexCount = 0;
 
+    // Cube For tests
+    ArrayBuffer** mCubeVBufs = nullptr;
+    Vao* mCubeVao = nullptr;
+
     //neighbors stuff
     bool mShowNeighbors = false;
-    std::vector<ShaderProgram*> mShaders;
-    std::vector<Vao*> mVaos;
 
     std::vector<float> mVerticesToUpload;
     std::vector<float> mForNodesVerticesToUpload;
@@ -158,8 +169,11 @@ private:
 
     std::vector<float> mForPathVerticesToUpload;
 
-    FMat4* mMatrices = nullptr;
-    FMat4* mModels = nullptr;
+    Matrix4f* mMatrices = nullptr;
+    Matrix4f* mModels = nullptr;
+
+    Vector3f mEuler;
+    Quaternionf mQuaternion;
 
     bool LoadColorConfiguration();
     void SaveColorConfiguration();

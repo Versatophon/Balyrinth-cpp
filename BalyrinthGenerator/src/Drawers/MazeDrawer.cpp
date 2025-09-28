@@ -2,6 +2,8 @@
 
 #include <Shape.h>
 
+#define DEBUG_MULT 1.f
+
 MazeDrawer::MazeDrawer(GeometryContainer& pGeometryContainer) :
     mGeometryContainer(pGeometryContainer),
     mNodePositions(mGeometryContainer.GetNodePositions()),
@@ -21,13 +23,13 @@ void MazeDrawer::AddFirstNode(uint32_t pNodeIndex)
     //clean
     mGeometryContainer.CleanupGeometry();
 
-    mNodePositions.resize(mMazeGeometryParameters.Width * mMazeGeometryParameters.Height, Vec2{ FLT_MAX , FLT_MAX });
+    mNodePositions.resize(mMazeGeometryParameters.Width * mMazeGeometryParameters.Height, Vector2f{ FLT_MAX , FLT_MAX });
 
     for (size_t j = 0; j < mMazeGeometryParameters.Height; ++j)
     {
         for (size_t i = 0; i < mMazeGeometryParameters.Width; ++i)
         {
-            mNodePositions[j * mMazeGeometryParameters.Width + i] = Vec2{ float(i), float(j) };
+            mNodePositions[j * mMazeGeometryParameters.Width + i] = Vector2f{ float(i), float(j) };
         }
     }
 
@@ -36,7 +38,7 @@ void MazeDrawer::AddFirstNode(uint32_t pNodeIndex)
 
 void MazeDrawer::AddEdge(uint32_t pNodeIndex0, uint32_t pNodeIndex1)
 {
-    DrawEdge(&MazeDrawer::DrawAAEdge, pNodeIndex0, pNodeIndex1);
+    DrawEdge(&MazeDrawer::DrawAAEdge, pNodeIndex0, pNodeIndex1, -3 * DEBUG_MULT);
 
     DrawNode(pNodeIndex1);
 
@@ -51,7 +53,7 @@ void MazeDrawer::UpdaterProcessCompleted(uint32_t pPathLength, const uint32_t* p
 {
     for (uint32_t i = 1; i < pPathLength; ++i)
     {
-        DrawEdge(&MazeDrawer::DrawAAPath, pPathIndices[i - 1], pPathIndices[i]);
+        DrawEdge(&MazeDrawer::DrawAAPath, pPathIndices[i - 1], pPathIndices[i], -1 * DEBUG_MULT);
     }
 }
 
@@ -69,15 +71,15 @@ void MazeDrawer::DrawNode(uint32_t pIndex, bool pInit)
     {
         mLastLutIndex = 0;
     }
-    const Vec2& lNodePosition = mNodePositions[pIndex];
+    const Vector2f& lNodePosition = mNodePositions[pIndex];
     mForNodesLut[pIndex] = mLastLutIndex++;
 
-    Vec3 lMin{ lNodePosition.X - mMazeGeometryParameters.PointWidth / 2, lNodePosition.Y - mMazeGeometryParameters.PointWidth / 2, -2 };
-    Vec3 lMax{ lNodePosition.X + mMazeGeometryParameters.PointWidth / 2, lNodePosition.Y + mMazeGeometryParameters.PointWidth / 2, -2 };
+    Vector3f lMin{ lNodePosition.X - mMazeGeometryParameters.PointWidth / 2, lNodePosition.Y - mMazeGeometryParameters.PointWidth / 2, -2 * DEBUG_MULT };
+    Vector3f lMax{ lNodePosition.X + mMazeGeometryParameters.PointWidth / 2, lNodePosition.Y + mMazeGeometryParameters.PointWidth / 2, -2 * DEBUG_MULT };
     DrawAANode(lMin, lMax);
 }
 
-void AddAARect(std::vector<float>& pContainer, const Vec3& pMin, const Vec3& pMax)
+void AddAARect(std::vector<float>& pContainer, const Vector3f& pMin, const Vector3f& pMax)
 {
     pContainer.push_back(pMin.X); pContainer.push_back(pMin.Y); pContainer.push_back(pMin.Z);
     pContainer.push_back(pMax.X); pContainer.push_back(pMin.Y); pContainer.push_back(pMin.Z);
@@ -87,17 +89,17 @@ void AddAARect(std::vector<float>& pContainer, const Vec3& pMin, const Vec3& pMa
     pContainer.push_back(pMin.X); pContainer.push_back(pMin.Y); pContainer.push_back(pMin.Z);
 }
 
-void MazeDrawer::DrawAANode(const Vec3& pMin, const Vec3& pMax)
+void MazeDrawer::DrawAANode(const Vector3f& pMin, const Vector3f& pMax)
 {
     AddAARect(mForNodesVerticesToAdd, pMin, pMax);
 }
 
-void MazeDrawer::DrawAAEdge(const Vec3& pMin, const Vec3& pMax)
+void MazeDrawer::DrawAAEdge(const Vector3f& pMin, const Vector3f& pMax)
 {
     AddAARect(mVerticesToAdd, pMin, pMax);
 }
 
-void MazeDrawer::DrawAAPath(const Vec3& pMin, const Vec3& pMax)
+void MazeDrawer::DrawAAPath(const Vector3f& pMin, const Vector3f& pMax)
 {
     AddAARect(mForPathVerticesToAdd, pMin, pMax);
 }

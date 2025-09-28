@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "../Vec2.h"
+#include <Vector2f.h>
 
 class Shape;
 
@@ -26,7 +26,7 @@ class GeometryContainer
 public:
     virtual Shape* GetShape() = 0;
 
-    virtual std::vector<Vec2>& GetNodePositions() = 0;
+    virtual std::vector<Vector2f>& GetNodePositions() = 0;
     virtual MazeGeometryParameters& GetMazeGeometryParameters() = 0;
     virtual std::vector<float>& GetVerticesToAdd() = 0;
 

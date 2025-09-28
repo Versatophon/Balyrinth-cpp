@@ -4,12 +4,13 @@
 
 void Tex::Bind() const
 {
-	glBindTexture(GL_TEXTURE_2D_ARRAY, Id);
+	glGetIntegerv(GL_TEXTURE_BINDING_2D, (int32_t*)&mPreviousId);
+	glBindTexture(GL_TEXTURE_2D, Id);
 }
 
 void Tex::Debind() const
 {
-	glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+	glBindTexture(GL_TEXTURE_2D, mPreviousId);
 }
 
 void Tex::Generate()

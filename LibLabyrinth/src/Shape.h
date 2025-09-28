@@ -5,21 +5,9 @@
 #include <cstdint>//uint32_t
 #include <cstddef>//size_t
 
-#include <variant>
-
-#include "Vec3.h"
-
 class Topology;
 
-//enum class ShapeEnum
-//{
-//	TriangularRoomsOnRectangularSpace,
-//	SquareRoomsOnRectangularSpace,
-//	HexagonalRoomsOnRectangularSpace,
-//	HexagonalRoomsOnHexagonalSpace,//Uses only width to define size
-//	OctogonalRoomsOnRectangularSpace,
-//	SquareRoomsOnToreSpace,
-//};
+struct Vector3f;
 
 struct Parameter
 {
@@ -59,9 +47,9 @@ public:
 	virtual ~Shape();
 
 	virtual Topology* GetTopology() = 0;
-	virtual Vec3 GetNodeNormalizedPosition(uint32_t pIndex) = 0;
-	virtual Vec3 GetSpaceSize() = 0;
-	virtual Vec3 GetUnitSpaceDelta(uint32_t pIndex0, uint32_t pIndex1) = 0;
+	virtual Vector3f GetNodeNormalizedPosition(uint32_t pIndex) = 0;
+	virtual Vector3f GetSpaceSize() = 0;
+	virtual Vector3f GetUnitSpaceDelta(uint32_t pIndex0, uint32_t pIndex1) = 0;
 
 protected:
 	Topology* mTopology = nullptr;

@@ -160,7 +160,6 @@ void Topology::ProcessDepth(uint32_t pInitialNodeIndex, std::vector<uint32_t>& p
 			{
 				pNodeWeights[lNeighborIndex] = lNodeWeight + 1;
 				lNodeIndicesToProcess.push(lNeighborIndex);
-				//ProcessDepth(mNodes[lNeigborIndex], pNodeWeights[lNeigborIndex], pNodeWeights);
 			}
 		}
 	}

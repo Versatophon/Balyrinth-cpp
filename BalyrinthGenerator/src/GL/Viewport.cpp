@@ -2,7 +2,7 @@
 
 #include <GL/glew.h>
 
-void Viewport::SetSize(const IVec2& pSize)
+void Viewport::SetSize(const Vector2i& pSize)
 {
     mGeometry.Size = pSize;
 }

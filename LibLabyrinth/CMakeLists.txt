@@ -20,8 +20,6 @@ add_library(LibLabyrinth SHARED
     src/SeededRandGen.cpp
     src/Shape.h
     src/Shape.cpp
-    src/Vec3.h
-    src/Vec3.cpp
 )
 
 find_path(PCG_INCLUDE_DIRS "pcg_random.hpp") # Only if no build package is required
@@ -31,6 +29,11 @@ target_include_directories(LibLabyrinth
         ${CMAKE_CURRENT_SOURCE_DIR}/src
     PRIVATE 
         ${PCG_INCLUDE_DIRS} # Only if no build package is required 
+)
+
+target_link_libraries(LibLabyrinth
+    PRIVATE 
+        LibSimpleMaths
 )
 
 # cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake

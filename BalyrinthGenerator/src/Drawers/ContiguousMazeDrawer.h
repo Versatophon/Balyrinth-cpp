@@ -8,5 +8,5 @@ public:
     ContiguousMazeDrawer(GeometryContainer& pGeometryContainer);
 
 private:
-    void DrawEdge(DrawRectangleFunc pFunction, uint32_t pNodeIndex0, uint32_t pNodeIndex1) override;
+    void DrawEdge(DrawRectangleFunc pFunction, uint32_t pNodeIndex0, uint32_t pNodeIndex1, float pDepth) override;
 };

@@ -2,7 +2,7 @@
 
 #include "Topology.h"
 
-#include "Vec3.h"
+#include <Vector3f.h>
 
 #include <string>
 
@@ -53,17 +53,17 @@ public:
 		return mTopology;
 	}
 	
-	Vec3 GetNodeNormalizedPosition(uint32_t pIndex) override
+	Vector3f GetNodeNormalizedPosition(uint32_t pIndex) override
 	{
-		return Vec3(pIndex % mWidth, pIndex / mWidth, 0);
+		return Vector3f(pIndex % mWidth, pIndex / mWidth, 0);
 	}
 
-	Vec3 GetSpaceSize() override
+	Vector3f GetSpaceSize() override
 	{
-		return Vec3(mWidth, mHeight, 1);
+		return Vector3f(mWidth, mHeight, 1);
 	}
 
-	Vec3 GetUnitSpaceDelta(uint32_t pIndex0, uint32_t pIndex1) override
+	Vector3f GetUnitSpaceDelta(uint32_t pIndex0, uint32_t pIndex1) override
 	{
 		return { 0, 0, 0 };
 	}
@@ -81,9 +81,6 @@ public:
 		mWidth(pWidth),
 		mHeight(pHeight)
 	{
-		//mUnitSpaceDividerX = (mWidth == 1 ? INT32_MIN : int32_t( - mWidth));
-		//mUnitSpaceDividerY = (mHeight == 1 ? INT32_MIN : int32_t( - mHeight));
-
 		mRoomType = RoomType::Square;
 		mTopology = new Topology(pWidth * pHeight);
 
@@ -123,22 +120,20 @@ public:
 		return mTopology;
 	}
 	
-	Vec3 GetNodeNormalizedPosition(uint32_t pIndex) override
+	Vector3f GetNodeNormalizedPosition(uint32_t pIndex) override
 	{
-		return Vec3(pIndex % mWidth, pIndex / mWidth, 0);
+		return Vector3f(pIndex % mWidth, pIndex / mWidth, 0);
 	}
 
-	Vec3 GetSpaceSize() override
+	Vector3f GetSpaceSize() override
 	{
-		return Vec3(mWidth, mHeight, 1);
+		return Vector3f(mWidth, mHeight, 1);
 	}
 
-	Vec3 GetUnitSpaceDelta(uint32_t pIndex0, uint32_t pIndex1) override
+	Vector3f GetUnitSpaceDelta(uint32_t pIndex0, uint32_t pIndex1) override
 	{
-		Vec3 lPos0 = GetNodeNormalizedPosition(pIndex0);
-		Vec3 lPos1 = GetNodeNormalizedPosition(pIndex1);
-
-		//return {(lPos1.X - lPos0.X) / mUnitSpaceDividerX, (lPos1.Y - lPos0.Y) / mUnitSpaceDividerY, 0 };
+		Vector3f lPos0 = GetNodeNormalizedPosition(pIndex0);
+		Vector3f lPos1 = GetNodeNormalizedPosition(pIndex1);
 
 		float lDeltaX = lPos1.X - lPos0.X;
 		float lDeltaY = lPos1.Y - lPos0.Y;
@@ -157,9 +152,6 @@ public:
 private:
 	uint32_t mWidth = 10;
 	uint32_t mHeight = 10;
-
-	//int32_t mUnitSpaceDividerX = 1;
-	//int32_t mUnitSpaceDividerY = 1;
 };
 
 Shape* GenerateSquaresOnRectShape(Parameters& pParameters)
