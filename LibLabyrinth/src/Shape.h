@@ -5,21 +5,9 @@
 #include <cstdint>//uint32_t
 #include <cstddef>//size_t
 
-#include <variant>
-
-#include "Vec3.h"
-
 class Topology;
 
-//enum class ShapeEnum
-//{
-//	TriangularRoomsOnRectangularSpace,
-//	SquareRoomsOnRectangularSpace,
-//	HexagonalRoomsOnRectangularSpace,
-//	HexagonalRoomsOnHexagonalSpace,//Uses only width to define size
-//	OctogonalRoomsOnRectangularSpace,
-//	SquareRoomsOnToreSpace,
-//};
+struct Vector3f;
 
 struct Parameter
 {
@@ -45,7 +33,7 @@ struct Parameters
 enum class RoomType
 {
 	Undefined,
-	Triangular,//Has 6 connections 2 per edge, to get a kin of direction 
+	Triangular,//Has 6 connections 2 per edge, to get a kind of direction 
 	Square,
 	Hexagonal,
 	Octogonal,
@@ -59,9 +47,9 @@ public:
 	virtual ~Shape();
 
 	virtual Topology* GetTopology() = 0;
-	virtual Vec3i GetNodeNormalizedPosition(uint32_t pIndex) = 0;
-	virtual Vec3i GetSpaceSize() = 0;
-	virtual Vec3i GetUnitSpaceDelta(uint32_t pIndex0, uint32_t pIndex1) = 0;
+	virtual Vector3f GetNodeNormalizedPosition(uint32_t pIndex) = 0;
+	virtual Vector3f GetSpaceSize() = 0;
+	virtual Vector3f GetUnitSpaceDelta(uint32_t pIndex0, uint32_t pIndex1) = 0;
 
 protected:
 	Topology* mTopology = nullptr;

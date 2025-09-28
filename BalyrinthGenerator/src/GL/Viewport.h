@@ -1,14 +1,14 @@
 #pragma once
 
-#include "../Maths/IRect.h"
+#include <Rectanglei.h>
 
 class Viewport
 {
 public:
-    void SetSize(const IVec2& pSize);
+    void SetSize(const Vector2i& pSize);
 
     void Activate() const;
 
 private:
-    IRect mGeometry = { {0, 0}, {10, 10} };
+    Rectanglei mGeometry = { {0, 0}, {10, 10} };
 };

@@ -1,7 +1,8 @@
 #pragma once
 
 #include "Bindable.h"
-#include "../Vec2.h"
+
+#include <Vector2us.h>
 
 #include <cstdint>
 #include <string>
@@ -17,5 +18,6 @@ public:
 
 private:
 	uint32_t Id = 0;
-	Vec2u Size;
+	Vector2us Size;
+	mutable uint32_t mPreviousId = 0;
 };

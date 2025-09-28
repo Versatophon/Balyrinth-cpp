@@ -45,7 +45,8 @@ void Shader::LoadFromString(const char* pSource)
 	GLint lStatus;
 	glCompileShader(mId);
 	glGetShaderiv(mId, GL_COMPILE_STATUS, &lStatus);
-	if (lStatus == GL_FALSE) {
+	if (lStatus == GL_FALSE)
+	{
 		GLint lInfoLogLength;
 		glGetShaderiv(mId, GL_INFO_LOG_LENGTH, &lInfoLogLength);
 		GLchar* lInfoLog = new GLchar[lInfoLogLength];
@@ -82,7 +83,6 @@ ShaderProgram::~ShaderProgram()
 void ShaderProgram::AttachShader(Shader* pShader)
 {
 	glAttachShader(mId, pShader->Id());
-
 }
 
 void ShaderProgram::Link()
@@ -104,13 +104,13 @@ void ShaderProgram::Link()
 	}
 }
 
-void ShaderProgram::Use() const
+void ShaderProgram::Bind() const
 {
 	glGetIntegerv(GL_CURRENT_PROGRAM, (int32_t*)&mPreviousId);
 	glUseProgram(mId);
 }
 
-void ShaderProgram::Deuse() const
+void ShaderProgram::Debind() const
 {
 	glUseProgram(mPreviousId);
 }

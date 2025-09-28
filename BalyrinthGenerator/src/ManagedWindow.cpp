@@ -25,7 +25,8 @@ extern "C" {
 
 #include "Tools/SettingsLoadSave.h"
 
-#include "Maths/IRect.h"
+#include <Vector2f.h>
+#include <Rectanglei.h>
 
 SDL_AppResult AppInit(void **pAppstate, int32_t pArgC, char** pArgV);
 SDL_AppResult AppEvent(void *pAppstate, SDL_Event *pEvent);
@@ -34,7 +35,7 @@ void AppQuit(void *pAppstate, SDL_AppResult pResult);
 
 struct WindowGeometrySettings
 {
-    IRect Rect = { {SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED}, {800, 600} };
+    Rectanglei Rect = { {SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED}, {800, 600} };
     bool Maximized = false;
 
     void Save(const char* pFilepath)
@@ -59,7 +60,7 @@ struct ManagedWindowID
 
     WindowGeometrySettings GeometrySettings;
 
-    IVec2 ActualSize = { 10, 10 };
+    Vector2i ActualSize = { 10, 10 };
 
     ManagedWindowID(ManagedWindow* pWindow):
     Window(pWindow)
@@ -194,7 +195,7 @@ void ManagedWindow::Render()
 {
 }
 
-void ManagedWindow::Resize(const IVec2 pSize)
+void ManagedWindow::Resize(const Vector2i pSize)
 {
 }
 

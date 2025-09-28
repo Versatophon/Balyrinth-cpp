@@ -2,8 +2,6 @@
 
 #include "LabyrinthApi.h"
 
-#include "Vec3.h"
-
 #include <cstdint>
 
 enum class Algorithm
@@ -22,7 +20,6 @@ class TopologyUpdaterListener
 {
 public:
 	virtual void AddFirstNode(uint32_t pNodeIndex) = 0;
-	//virtual void AddNode(uint32_t pNodeIndex) = 0;
 	virtual void AddEdge(uint32_t pNodeIndex0, uint32_t pNodeIndex1) = 0;
 
 	virtual void UpdaterProcessCompleted(uint32_t pPathLength, const uint32_t* pPathIndices) = 0;

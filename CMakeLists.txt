@@ -4,6 +4,7 @@ project(Balyrinth CXX)
 set(CMAKE_CXX_STANDARD 20)
 
 add_subdirectory(LibLabyrinth)
+add_subdirectory(LibSimpleMaths)
 add_subdirectory(BalyrinthGenerator)
 
 #"CMAKE_TOOLCHAIN_FILE": "/opt/vcpkg/scripts/buildsystems/vcpkg.cmake",

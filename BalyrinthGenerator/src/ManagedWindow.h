@@ -7,7 +7,7 @@
 union SDL_Event;
 
 struct ManagedWindowID;
-struct IVec2;
+struct Vector2i;
 
 class ManagedWindow:public SdlResourcesProvider
 {
@@ -26,7 +26,7 @@ protected:
     virtual void Quit();
 
     virtual void Render();
-    virtual void Resize(const IVec2 pSize);
+    virtual void Resize(const Vector2i pSize);
 
     float GetLastFrameDuration();
     uint32_t GetWidth();

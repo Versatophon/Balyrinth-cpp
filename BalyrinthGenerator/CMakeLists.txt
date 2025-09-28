@@ -15,8 +15,6 @@ add_executable(BalyrinthGenerator
     src/BalyrinthGeneratorWindow.cpp
     src/ManagedWindow.h
     src/ManagedWindow.cpp
-    src/Vec2.h
-    src/Vec2.cpp
     src/GL/Binder.h
     src/GL/Binder.cpp
     src/GL/Buffers.h
@@ -46,6 +44,7 @@ target_link_libraries(BalyrinthGenerator
         SDL3::SDL3
         imgui::imgui
         LibLabyrinth
+        LibSimpleMaths
 )
 
 if(WIN32)

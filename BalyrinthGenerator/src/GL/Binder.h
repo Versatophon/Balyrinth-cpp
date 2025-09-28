@@ -5,16 +5,9 @@
 class Binder
 {
 public:
-	inline Binder(const Bindable& pBindable):
-		mBindable(pBindable)
-	{
-		mBindable.Bind();
-	}
+	Binder(const Bindable& pBindable);
 
-	inline ~Binder()
-	{
-		mBindable.Debind();
-	}
+	~Binder();
 
 private:
 	const Bindable& mBindable;

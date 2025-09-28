@@ -1,10 +1,11 @@
 #pragma once
 
-
 #include <unordered_map>
 #include <string>
 #include <vector>
 #include <cstdint>
+
+#include "Bindable.h"
 
 class Ubo;
 
@@ -40,7 +41,7 @@ private:
 	uint32_t mId = 0;
 };
 
-class ShaderProgram
+class ShaderProgram: public Bindable
 {
 public:
 	ShaderProgram();
@@ -49,8 +50,8 @@ public:
 	void AttachShader(Shader* pShader);
 	void Link();
 
-	void Use() const;
-	void Deuse() const;
+	void Bind() const override;
+	void Debind() const override;
 
 	void LinkUbo(Ubo* pUbo);
 
