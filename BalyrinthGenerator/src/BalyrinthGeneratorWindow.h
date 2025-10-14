@@ -27,9 +27,18 @@ class ShaderProgram;
 class Ubo;
 class Vao;
 class ArrayBuffer;
+class IndexBuffer;
+class Mesh;
 
 struct Matrix4f;
 struct Vector2i;
+
+struct GraphicsState
+{
+    int32_t TotalMemory = 0;
+    int32_t CheckFreeMemoryEnum = 0;
+    std::string RendererName;
+};
 
 template <typename T> struct SelectableGroup
 {
@@ -51,6 +60,13 @@ template <typename T> struct SelectableGroup
 //TODO: Use progressive generation(sort of laser engraver) to display time as number made from mazes
 //TODO: ajoute feature qui montre la limite de la forme de base avec un rectangle englobant
 //TODO: ajoute un moyen d'enregistrer une topologie dans un fichier
+//TODO: Prendre 2 sommets au hasard, résoudre le chemin entre ces sommets, et placer un mob qui navigue entre ces sommets, mieux on peut imaginer choisir un sommet au hasard une fois la destination atteinte
+// On pourrait utiliser cet algo pour faire du path tracing pour des pnjs en ayant généré au préalable une topologie sur l'environnement 2D/3D 
+
+//Cool Seeds in bloom:
+//1287658791410650253 11769651394140859956
+//1044605749197665528 5506795945906036838 
+//17179595647950913834 5676496069824750797 //Wave seed
 
 struct Color
 {
@@ -140,6 +156,9 @@ private:
     Vao* mLabyrinthVao = nullptr;
     uint32_t mCurrentPositionInBuffer = 0;
 
+
+    Mesh* mNodesMesh = nullptr;
+
     ArrayBuffer** mNodesVBufs = nullptr;
     Vao* mNodesVao = nullptr;
     uint32_t mCurrentPositionInNodesBuffer = 0;
@@ -157,8 +176,7 @@ private:
     size_t mPathVertexCount = 0;
 
     // Cube For tests
-    ArrayBuffer** mCubeVBufs = nullptr;
-    Vao* mCubeVao = nullptr;
+    Mesh* mCubeMesh = nullptr;
 
     //neighbors stuff
     bool mShowNeighbors = false;
@@ -174,6 +192,8 @@ private:
 
     Vector3f mEuler;
     Quaternionf mQuaternion;
+
+    GraphicsState mGraphicsState;
 
     bool LoadColorConfiguration();
     void SaveColorConfiguration();

@@ -38,6 +38,59 @@ extern "C" {
 //TODO: ajouter une fonctionnalité pour sérialiser les topologies
 //TODO: ajouter une fonctionnalité pour exporter la seed
 
+class Mesh
+{
+public:
+    Mesh(ShaderProgram* pShaderProgram, const std::vector<Vector3f>& pVertices, const std::vector<uint8_t>& pColorIndices, const std::vector<uint16_t> pGeometryIndices, GeometryType pGeometryType)
+    {
+        mVao = new Vao;
+
+        mVertexBuffers = new ArrayBuffer * [2];
+        mVertexBuffers[0] = new ArrayBuffer(pVertices.size() * sizeof(float) * 3, BufferUsage::Dynamic, pVertices.data());
+        mVertexBuffers[1] = new ArrayBuffer(pColorIndices.size() * sizeof(uint8_t), BufferUsage::Dynamic, pColorIndices.data());
+
+        mVao->Init();
+        mVao->ConfigureArrayBuffers(pShaderProgram, mVertexBuffers);
+
+        mGeometryType = pGeometryType;
+        mElementCount = pGeometryIndices.size();
+        mIndices = new IndexBuffer(mElementCount * sizeof(uint16_t), BufferUsage::Dynamic, pGeometryIndices.data());
+    }
+
+    //Mesh(ShaderProgram* pShaderProgram, GeometryType pGeometryType)
+    //{
+    //    mVao = new Vao;
+    //    mVao->Init();
+    //    mVertexBuffers = new ArrayBuffer * [2];
+    //
+    //}
+
+    ~Mesh()
+    {
+        delete mIndices;
+        delete mVertexBuffers[1];
+        delete mVertexBuffers[0];
+        delete mVertexBuffers;
+        delete mVao;
+    }
+
+    void Render()
+    {
+        Binder lVaoBinder(*mVao);
+        Binder lIndicesBinder(*mIndices);
+
+        glDrawElements(uint32_t(mGeometryType), mElementCount, GL_UNSIGNED_SHORT, 0);
+    }
+
+protected:
+    ArrayBuffer** mVertexBuffers = nullptr;
+    IndexBuffer* mIndices = nullptr;
+    Vao* mVao = nullptr;
+
+    GeometryType mGeometryType = GeometryType::Triangles;
+    uint32_t mElementCount = 0;
+};
+
 template <typename T> bool ExecuteCombobox(const char* pLabel, SelectableGroup<T>& pSelectableGroup)
 {
     bool lChanged = false;
@@ -157,7 +210,28 @@ void BalyrinthGeneratorWindow::CleanupGeometry()
 
 int32_t BalyrinthGeneratorWindow::Init()
 {
-    GLenum lreturn = glewInit();
+    GLenum lReturn = glewInit();
+
+    mGraphicsState.RendererName = (const char*)glGetString(GL_RENDERER);
+    int32_t lGpuMemory;
+    glGetIntegerv(GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX, &lGpuMemory);
+    if (glGetError() == GL_NO_ERROR)
+    {
+        mGraphicsState.CheckFreeMemoryEnum = GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX;
+        glGetIntegerv(GL_GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX, &mGraphicsState.TotalMemory);
+    }
+    else
+    {
+        glGetIntegerv(GL_TEXTURE_FREE_MEMORY_ATI, &lGpuMemory);
+        if (glGetError() == GL_NO_ERROR)
+        {
+            mGraphicsState.CheckFreeMemoryEnum = GL_TEXTURE_FREE_MEMORY_ATI;
+            glGetIntegerv(GL_TEXTURE_FREE_MEMORY_ATI, &mGraphicsState.TotalMemory);
+        }
+    }
+
+
+
 
     mMatricesUbo = new Ubo(sizeof(Matrix4f) * 2, "matrices");
     mMatrices = (Matrix4f*)mMatricesUbo->GetMemory();
@@ -227,7 +301,8 @@ int32_t BalyrinthGeneratorWindow::Init()
     mLabyrinthVBufs = new ArrayBuffer * [2];
     mLabyrinthVBufs[0] = new ArrayBuffer(lVerticesCount * sizeof(float) * 3, BufferUsage::Dynamic, nullptr);
     mLabyrinthVBufs[1] = new ArrayBuffer(lVerticesCount * sizeof(uint8_t), BufferUsage::Dynamic, nullptr);
-    mLabyrinthVao->Init(mShader, mLabyrinthVBufs);
+    mLabyrinthVao->Init();
+    mLabyrinthVao->ConfigureArrayBuffers(mShader, mLabyrinthVBufs);
 
     //Initialize nodes geometry
     mNodesVao = new Vao;
@@ -235,81 +310,61 @@ int32_t BalyrinthGeneratorWindow::Init()
     mNodesVBufs = new ArrayBuffer * [2];
     mNodesVBufs[0] = new ArrayBuffer(lVerticesCount * sizeof(float) * 3, BufferUsage::Dynamic, nullptr);
     mNodesVBufs[1] = new ArrayBuffer(lVerticesCount * sizeof(uint8_t), BufferUsage::Dynamic, nullptr);
-    mNodesVao->Init(mShader, mNodesVBufs);
+    mNodesVao->Init();
+    mNodesVao->ConfigureArrayBuffers(mShader, mNodesVBufs);
+
+    //mNodesMesh = new Mesh(mShader, )
 
     mPathVao = new Vao;
    
     mPathVBufs = new ArrayBuffer * [2];
     mPathVBufs[0] = new ArrayBuffer(0 * sizeof(float) * 3, BufferUsage::Dynamic, nullptr);
     mPathVBufs[1] = new ArrayBuffer(0 * sizeof(uint8_t), BufferUsage::Dynamic, nullptr);
-    mPathVao->Init(mShader, mPathVBufs);
+    mPathVao->Init();
+    mPathVao->ConfigureArrayBuffers(mShader, mPathVBufs);
 
     {
 
-        std::vector<Vector3f> lVertices =
-        {
-            {-1.f, -1.f, -1.f},//0
-            {1.f, -1.f, -1.f},//1
-
-            {-1.f, 1.f, -1.f},//2
-            {1.f, 1.f, -1.f},//3
-
-            {-1.f, -1.f, -1.f},//0
-            {-1.f, 1.f, -1.f},//2
-
-            {1.f, -1.f, -1.f},//1
-            {1.f, 1.f, -1.f},//3
-
-            {-1.f, -1.f, 1.f},//4
-            {1.f, -1.f, 1.f},//5
-
-            {-1.f, 1.f, 1.f},//6
-            {1.f, 1.f, 1.f},//7
-
-            {-1.f, -1.f, 1.f},//4
-            {-1.f, 1.f, 1.f},//6
-
-            {1.f, -1.f, 1.f},//5
-            {1.f, 1.f, 1.f},//7
-
-
-            {-1.f, -1.f, -1.f},//0
-            {-1.f, -1.f, 1.f},//4
-
-            {1.f, -1.f, -1.f},//1
-            {1.f, -1.f, 1.f},//5
-
-            {1.f, 1.f, -1.f},//3
-            {1.f, 1.f, 1.f},//7
-
-            {-1.f, 1.f, -1.f},//2
-            {-1.f, 1.f, 1.f},//6
-
-
-        };
-
         uint8_t lBaseIndex = 6;
 
-        std::vector<uint8_t> lColIndices =
+        std::vector<Vector3f> lCollapsedVertices =
         {
-            uint8_t(lBaseIndex + 0), uint8_t(lBaseIndex + 1), uint8_t(lBaseIndex + 2), uint8_t(lBaseIndex + 3),
-            uint8_t(lBaseIndex + 0), uint8_t(lBaseIndex + 2), uint8_t(lBaseIndex + 1), uint8_t(lBaseIndex + 3),
-            uint8_t(lBaseIndex + 4), uint8_t(lBaseIndex + 5), uint8_t(lBaseIndex + 6), uint8_t(lBaseIndex + 7),
-            uint8_t(lBaseIndex + 4), uint8_t(lBaseIndex + 6), uint8_t(lBaseIndex + 5), uint8_t(lBaseIndex + 7),
-            uint8_t(lBaseIndex + 0), uint8_t(lBaseIndex + 4), uint8_t(lBaseIndex + 1), uint8_t(lBaseIndex + 5),
-            uint8_t(lBaseIndex + 3), uint8_t(lBaseIndex + 7), uint8_t(lBaseIndex + 2), uint8_t(lBaseIndex + 6),
+            {-1.f, -1.f, -1.f},//0
+            {1.f, -1.f, -1.f},//1
+
+            {-1.f, 1.f, -1.f},//2
+            {1.f, 1.f, -1.f},//3
+
+            {-1.f, -1.f, 1.f},//4
+            {1.f, -1.f, 1.f},//5
+
+            {-1.f, 1.f, 1.f},//6
+            {1.f, 1.f, 1.f},//7
         };
 
-        mCubeVao = new Vao;
+        std::vector<uint16_t> lEdgeIndices =
+        {
+            0, 1, 2, 3,
+            0, 2, 1, 3,
+            4, 5, 6, 7,
+            4, 6, 5, 7,
+            0, 4, 1, 5,
+            3, 7, 2, 6,
+        };
 
-        mCubeVBufs = new ArrayBuffer * [2];
-        mCubeVBufs[0] = new ArrayBuffer(24 * sizeof(float) * 3, BufferUsage::Dynamic, lVertices.data());
-        mCubeVBufs[1] = new ArrayBuffer(24 * sizeof(uint8_t), BufferUsage::Dynamic, lColIndices.data());
-        mCubeVao->Init(mShader, mCubeVBufs);
+        std::vector<uint8_t> lCollapsedColIndices =
+        {
+            uint8_t(lBaseIndex + 0),
+            uint8_t(lBaseIndex + 1),
+            uint8_t(lBaseIndex + 2),
+            uint8_t(lBaseIndex + 3),
+            uint8_t(lBaseIndex + 4),
+            uint8_t(lBaseIndex + 5),
+            uint8_t(lBaseIndex + 6),
+            uint8_t(lBaseIndex + 7),
+        };
 
-
-
-
+        mCubeMesh = new Mesh(mShader, lCollapsedVertices, lCollapsedColIndices, lEdgeIndices, GeometryType::Lines);
     }
 
     delete lVertexShader;
@@ -450,10 +505,10 @@ void BalyrinthGeneratorWindow::Render()
     {
         uint32_t lSize = mForNodesVerticesToUpload.size() * sizeof(float);
         mNodesVBufs[0]->PartialUpload(mCurrentPositionInNodesBuffer, lSize, mForNodesVerticesToUpload.data());
-        mCurrentPositionInNodesBuffer += lSize;
-            
         //put it in another conditionnal ?
         mNodesVBufs[1]->Upload(mNodesNeigborCount.size() * sizeof(uint8_t), mNodesNeigborCount.data());
+        mCurrentPositionInNodesBuffer += lSize;
+            
 
         mForNodesVerticesToUpload.clear();
     }
@@ -522,12 +577,14 @@ void BalyrinthGeneratorWindow::Render()
     Binder lShaderBinder(*mShader);
 
     {
+
+        //Mémoire pour un Node: 6 * (3 * 4 + 1) = 78 octets 
+        //Mémoire avec liste: 4 * (3 * 4 + 1) + 6 * 2 = 64 octets 
         mShader->UpdateUniform("model_index", 0);
 
-        //{
-        //    Binder lCubeBinder(*mCubeVao);
-        //    glDrawArrays(GL_LINES, 0, 24);
-        //}
+#if 0
+        mCubeMesh->Render();
+#endif
 
 #if 1
         if (mRenderEdges)
@@ -684,6 +741,13 @@ void BalyrinthGeneratorWindow::ProcessImGui()
         ImGui::SameLine();
         ImGui::Checkbox("Keep this seed", &mKeepSeed);
 
+        
+        
+        //glGetInteger64v(GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX, );
+
+        //GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX;
+
+#if 1// debug matrices
         for (size_t i = 0; i < 8; ++i)
         {
             std::string lNumber = std::to_string(i);
@@ -705,7 +769,51 @@ void BalyrinthGeneratorWindow::ProcessImGui()
         ImGui::DragFloat4("##Mat1", lMatrix[1].Array(), 0.001f);
         ImGui::DragFloat4("##Mat2", lMatrix[2].Array(), 0.001f);
         ImGui::DragFloat4("##Mat3", lMatrix[3].Array(), 0.001f);
+#endif
 
+        ImGui::End();
+
+        ImGui::Begin("Graphics State");
+        //int32_t lGpuMemory = 0;
+        //int32_t lGpuTotalMemory = 0;
+
+
+        ImGui::Text("%s", mGraphicsState.RendererName.c_str());
+        
+        if (mGraphicsState.TotalMemory > 0)
+        {
+            int32_t lGpuMemory = 0;
+            glGetIntegerv(mGraphicsState.CheckFreeMemoryEnum, &lGpuMemory);
+
+
+            int32_t lMemoryUsedInMB = (mGraphicsState.TotalMemory - lGpuMemory) / 1024;
+            int32_t lTotalMemoryInMB = mGraphicsState.TotalMemory / 1024;
+
+            std::string lMemText = std::to_string(lMemoryUsedInMB) + " / " + std::to_string(lTotalMemoryInMB) + " MB";
+
+            ImGui::ProgressBar(float(lMemoryUsedInMB) / float(lTotalMemoryInMB), ImVec2(-FLT_MIN, 0), lMemText.c_str());
+        }
+        
+
+        //glGetIntegerv(GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX, &lGpuMemory);
+        //glGetIntegerv(GL_GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX, &lGpuTotalMemory);
+
+        int lVerticesCount =
+            mCurrentPositionInBuffer / (sizeof(float) * 3) +
+            mCurrentPositionInNodesBuffer / (sizeof(float) * 3) +
+            mPathVertexCount;
+
+        int lTriangleCount = lVerticesCount / 3;
+
+        int lMemoryUsed = lVerticesCount * sizeof(float) * 3;
+
+        lMemoryUsed /= (1024 * 1024);
+
+        //ImGui::Text("Memory %i/%i", lGpuMemory, lGpuTotalMemory);
+
+        ImGui::Text("%i vertices / %i triangles", lVerticesCount, lTriangleCount);
+
+        ImGui::Text("Graphics Memory used: %i MB", lMemoryUsed);
         ImGui::End();
     }
 }

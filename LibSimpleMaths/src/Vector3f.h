@@ -7,9 +7,9 @@
 
 struct SIMPLE_MATHS_API Vector3f
 {
-    float X;
-    float Y;
-    float Z;
+    float X = 0;
+    float Y = 0;
+    float Z = 0;
 
     float Norm() const;
     Vector3f Normalized() const;

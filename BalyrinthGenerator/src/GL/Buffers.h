@@ -14,10 +14,18 @@ enum class BufferUsage
     Dynamic,//modified repeatedly and used many times
 };
 
+
+enum class GeometryType
+{
+    Points = GL_POINTS,
+    Lines = GL_LINES,
+    Triangles = GL_TRIANGLES
+};
+
 class Buffer :public Bindable
 {
 public:
-	Buffer(uint32_t pTarget, size_t pSize, uint32_t pUsage, void* pData = nullptr);
+	Buffer(uint32_t pTarget, size_t pSize, uint32_t pUsage, const void* pData = nullptr);
 
     virtual ~Buffer();
 
@@ -27,7 +35,7 @@ public:
 
     void Upload(size_t pSize, void* pData);
 
-    void PartialUpload(size_t pOffset, size_t pSize, void* pData);
+    void PartialUpload(size_t pOffset, size_t pSize, const void* pData);
 
 protected:
     uint32_t mId = 0;
@@ -41,13 +49,13 @@ protected:
 class ArrayBuffer :public Buffer
 {
 public:
-    ArrayBuffer(uint32_t pSize, BufferUsage pBufferUsage, void* pData = nullptr);
+    ArrayBuffer(uint32_t pSize, BufferUsage pBufferUsage, const void* pData = nullptr);
 };
 
 class IndexBuffer :public Buffer
 {
 public:
-    IndexBuffer(uint32_t pSize, BufferUsage pBufferUsage, void* pData = nullptr);
+    IndexBuffer(uint32_t pSize, BufferUsage pBufferUsage, const void* pData = nullptr);
 };
 
 class Ubo :public Buffer
@@ -77,12 +85,12 @@ private:
 class Vao :public Bindable
 {
 public:
-    void Init(ShaderProgram* pShaderProgram, ArrayBuffer** pArrayBuffers);
-
+    void Init();
     void Deinit();
 
-    void Bind() const;
+    void ConfigureArrayBuffers(ShaderProgram* pShaderProgram, ArrayBuffer** pArrayBuffers);
 
+    void Bind() const;
     void Debind() const;
 
 private:

@@ -266,8 +266,6 @@ int32_t ManagedWindow::InternalInit()
     SDL_GL_MakeCurrent(mID->SdlWindow, mID->SdlGlContext);
     SDL_GL_SetSwapInterval(1); // Enable vsync
 
-    SDL_Log("renderer: %s", (const char*)glGetString(GL_RENDERER));
-
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();

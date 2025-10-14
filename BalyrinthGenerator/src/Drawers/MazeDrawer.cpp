@@ -2,7 +2,7 @@
 
 #include <Shape.h>
 
-#define DEBUG_MULT 1.f
+#define DEBUG_MULT .001f
 
 MazeDrawer::MazeDrawer(GeometryContainer& pGeometryContainer) :
     mGeometryContainer(pGeometryContainer),

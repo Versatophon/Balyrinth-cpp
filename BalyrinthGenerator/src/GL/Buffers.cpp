@@ -23,7 +23,7 @@ static std::unordered_map<uint32_t, uint32_t> sTargetToBinding =
     {GL_UNIFORM_BUFFER, GL_UNIFORM_BUFFER_BINDING},
 };
 
-Buffer::Buffer(uint32_t pTarget, size_t pSize, uint32_t pUsage, void* pData) :
+Buffer::Buffer(uint32_t pTarget, size_t pSize, uint32_t pUsage, const void* pData) :
     mTarget(pTarget),
     mSize(pSize),
     mUsage(pUsage),
@@ -59,20 +59,20 @@ void Buffer::Upload(size_t pSize, void* pData)
     Debind();
 }
 
-void Buffer::PartialUpload(size_t pOffset, size_t pSize, void* pData)
+void Buffer::PartialUpload(size_t pOffset, size_t pSize, const void* pData)
 {
     Bind();
     glBufferSubData(mTarget, pOffset, pSize, pData);
     Debind();
 }
 
-ArrayBuffer::ArrayBuffer(uint32_t pSize, BufferUsage pBufferUsage, void* pData) :
+ArrayBuffer::ArrayBuffer(uint32_t pSize, BufferUsage pBufferUsage, const void* pData) :
     Buffer(GL_ARRAY_BUFFER, pSize, GL_STREAM_DRAW + (4 * (uint32_t)pBufferUsage), pData)
 {
 }
 
-IndexBuffer::IndexBuffer(uint32_t pSize, BufferUsage pBufferUsage, void* pData) :
-    Buffer(GL_ELEMENT_ARRAY_BUFFER, pSize, GL_STREAM_DRAW + (4 * (uint32_t)pBufferUsage))
+IndexBuffer::IndexBuffer(uint32_t pSize, BufferUsage pBufferUsage, const void* pData) :
+    Buffer(GL_ELEMENT_ARRAY_BUFFER, pSize, GL_STREAM_DRAW + (4 * (uint32_t)pBufferUsage), pData)
 {
 }
 
@@ -118,17 +118,25 @@ void* Ubo::GetMemory()
     return mMemory;
 }
 
-void Vao::Init(ShaderProgram* pShaderProgram, ArrayBuffer** pArrayBuffers)
+void Vao::Init()
 {
     if (mId == 0)
     {
         glGenVertexArrays(1, &mId);
-        //Deinit();
     }
+}
 
+void Vao::Deinit()
+{
+    glDeleteVertexArrays(1, &mId);
+    mId = 0;
+}
 
+void Vao::ConfigureArrayBuffers(ShaderProgram* pShaderProgram, ArrayBuffer** pArrayBuffers)
+{
     Bind();
 
+    //TODO: prefer interleaved buffers
     uint32_t lAttributeCount = pShaderProgram->GetAttributeCount();
     for (uint32_t i = 0; i < lAttributeCount; ++i)
     {
@@ -150,12 +158,6 @@ void Vao::Init(ShaderProgram* pShaderProgram, ArrayBuffer** pArrayBuffers)
     }
 
     Debind();
-}
-
-void Vao::Deinit()
-{
-    glDeleteVertexArrays(1, &mId);
-    mId = 0;
 }
 
 void Vao::Bind() const
