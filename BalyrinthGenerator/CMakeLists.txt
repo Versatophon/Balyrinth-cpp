@@ -1,15 +1,39 @@
 cmake_minimum_required(VERSION 3.25)
-project(BalyrinthGenerator VERSION 0.1.0 LANGUAGES CXX)
+
+set(ProjectName "BalyrinthGenerator")
+
+project(${ProjectName} VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(OpenGL REQUIRED)
-find_package(GLEW CONFIG REQUIRED)
-find_package(SDL3 REQUIRED CONFIG REQUIRED)
-find_package(imgui REQUIRED)
+set(ImGuiDir "../imgui/")
+set(ImGuiBackendsDir "../imgui/backends/")
+set(ImGuiSrcs
+    "${ImGuiDir}imgui.cpp"
+    "${ImGuiDir}imgui_draw.cpp"
+    "${ImGuiDir}imgui_tables.cpp"
+    "${ImGuiDir}imgui_widgets.cpp"
+    "${ImGuiBackendsDir}imgui_impl_opengl3.cpp"
+    "${ImGuiBackendsDir}imgui_impl_sdl3.cpp"
+)
 
-add_executable(BalyrinthGenerator
+IF (WIN32)
+  find_package(OpenGL REQUIRED)
+  find_package(GLEW CONFIG REQUIRED)
+  find_package(SDL3 REQUIRED CONFIG REQUIRED)
+  find_package(imgui REQUIRED)
+ELSE()
+  find_package(PkgConfig REQUIRED) 
+  find_package(OpenGL)
+  find_package(SDL3 REQUIRED CONFIG REQUIRED)
+
+  find_package(GLEW REQUIRED)
+  include_directories(${GLEW_INCLUDE_DIRS})
+  link_libraries(${GLEW_LIBRARIES})
+ENDIF()
+
+add_executable(${ProjectName}
     src/main.cpp
     src/BalyrinthGeneratorWindow.h
     src/BalyrinthGeneratorWindow.cpp
@@ -37,23 +61,30 @@ add_executable(BalyrinthGenerator
     src/Resources/InlineShaders.h
     src/Tools/SettingsLoadSave.h
     src/Tools/SettingsLoadSave.cpp
+    ${ImGuiSrcs}
 )
 
-target_link_libraries(BalyrinthGenerator
+target_include_directories(${ProjectName} 
+    PRIVATE
+        ${ImGuiDir}
+        ${ImGuiBackendsDir}
+)
+
+target_link_libraries(${ProjectName}
     PRIVATE 
         OpenGL::GL
         GLEW::GLEW
         SDL3::SDL3
-        imgui::imgui
         LibLabyrinth
         LibSimpleMaths
 )
+#        imgui::imgui
 
 if(WIN32)
-    add_custom_command(TARGET BalyrinthGenerator POST_BUILD
+    add_custom_command(TARGET ${ProjectName} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            $<TARGET_RUNTIME_DLLS:BalyrinthGenerator>
-            $<TARGET_FILE_DIR:BalyrinthGenerator>
+            $<TARGET_RUNTIME_DLLS:${ProjectName}>
+            $<TARGET_FILE_DIR:${ProjectName}>
         COMMAND_EXPAND_LISTS
     )
 endif()

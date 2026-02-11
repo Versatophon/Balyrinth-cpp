@@ -3,6 +3,8 @@
 #include "Vector3f.h"
 #include "Quaternionf.h"
 
+#include <cmath>
+
 Matrix4f::Matrix4f(float p00, float p01, float p02, float p03,
 				   float p10, float p11, float p12, float p13,
 				   float p20, float p21, float p22, float p23,

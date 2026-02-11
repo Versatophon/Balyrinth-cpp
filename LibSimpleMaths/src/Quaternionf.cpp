@@ -5,6 +5,9 @@
 
 #include "Trigonometry.h"
 
+#include <cmath>
+#include <cfloat>
+
 Quaternionf::Quaternionf(float pX, float pY, float pZ, float pW) : X(pX), Y(pY), Z(pZ), W(pW)
 {
 }

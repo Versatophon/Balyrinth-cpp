@@ -3,6 +3,8 @@
 #include <iostream>
 #include <fstream>
 
+#include <cstdint>
+
 void SaveSetting(const void* pObject, size_t pObjectSize, const char* pFilepath)
 {
     std::ofstream lSettingsFile(pFilepath);

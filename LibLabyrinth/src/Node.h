@@ -3,6 +3,7 @@
 #include "LabyrinthApi.h"
 
 #include <cstdint>
+#include <cstddef>
 
 #define INVALID_NODE_INDEX UINT32_MAX
 

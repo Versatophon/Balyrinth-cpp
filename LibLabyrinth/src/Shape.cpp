@@ -5,6 +5,8 @@
 #include <Vector3f.h>
 
 #include <string>
+#include <cstring>
+#include <cmath>
 
 Shape::Shape()
 {

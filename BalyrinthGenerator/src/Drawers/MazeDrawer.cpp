@@ -2,6 +2,8 @@
 
 #include <Shape.h>
 
+#include <cfloat>
+
 #define DEBUG_MULT .001f
 
 MazeDrawer::MazeDrawer(GeometryContainer& pGeometryContainer) :

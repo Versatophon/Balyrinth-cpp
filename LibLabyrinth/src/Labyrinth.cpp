@@ -7,6 +7,7 @@
 #include "SeededRandGen.h"
 
 #include <iostream>
+#include <cstddef>
 
 #define NOT_CONNECTED 0
 #define ALREADY_IN_SET 1

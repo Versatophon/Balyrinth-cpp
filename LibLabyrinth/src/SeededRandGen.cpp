@@ -7,7 +7,7 @@
 struct SeededRandGenID
 {
     pcg64_fast RandGen;
-    Seed Seed;
+    Seed TheSeed;
 };
 
 SeededRandGen::SeededRandGen(const Seed pSeed):
@@ -23,18 +23,18 @@ SeededRandGen::~SeededRandGen()
 
 void SeededRandGen::SetSeed(const Seed pSeed)
 {
-    mID->Seed = pSeed;
+    mID->TheSeed = pSeed;
     ResetSeed();
 }
 
 Seed SeededRandGen::GetSeed() const
 {
-    return mID->Seed;
+    return mID->TheSeed;
 }
 
 void SeededRandGen::ResetSeed()
 {
-    mID->RandGen = pcg64_fast(*(pcg_extras::pcg128_t*)&mID->Seed);
+    mID->RandGen = pcg64_fast(*(pcg_extras::pcg128_t*)&mID->TheSeed);
 }
 
 void SeededRandGen::NewRandomSeed()
