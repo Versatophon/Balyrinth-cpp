@@ -41,7 +41,7 @@ You need to have these packages installed via vcpkg:
 		```
 	- imgui[core,sdl3-binding,opengl3-binding]:
 		```
-		vcpkg.exe install imgui[core,sdl3-binding,opengl3-binding] --recurse
+		vcpkg install imgui[core,sdl3-binding,opengl3-binding] --recurse
 		```
 
 ### Build project
