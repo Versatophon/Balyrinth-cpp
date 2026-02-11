@@ -51,6 +51,14 @@ void Buffer::Debind() const
     glBindBuffer(mTarget, mPreviousId);
 }
 
+void Buffer::SetSize(size_t pSize)
+{
+    mSize = pSize;
+    Bind();
+    glBufferData(mTarget, mSize, nullptr, mUsage);
+    Debind();
+}
+
 void Buffer::Upload(size_t pSize, void* pData)
 {
     mSize = pSize;
@@ -145,7 +153,7 @@ void Vao::ConfigureArrayBuffers(ShaderProgram* pShaderProgram, ArrayBuffer** pAr
         switch (pShaderProgram->GetAttributeType(i))
         {
         case AttributeType::FLOAT:
-            glVertexAttribPointer(pShaderProgram->GetAttribute(i), 3, GL_FLOAT, false/*(i != 0)*/, 3 * sizeof(GLfloat), 0);
+            glVertexAttribPointer(pShaderProgram->GetAttribute(i), 3, GL_FLOAT, false, 3 * sizeof(GLfloat), 0);
             break;
         case AttributeType::INTEGER:
             glVertexAttribIPointer(pShaderProgram->GetAttribute(i), 1, GL_UNSIGNED_BYTE, 1 * sizeof(GLubyte), 0);
@@ -168,4 +176,18 @@ void Vao::Bind() const
 void Vao::Debind() const
 {
     glBindVertexArray(0);
+}
+
+ArrayBufferList::ArrayBufferList(uint32_t pBufferCount, const BufferUsage* pBufferUsage):
+    mBufferCount(pBufferCount)
+{
+    for (uint32_t i = 0; i < pBufferCount; ++i)
+    {
+
+    }
+}
+
+ArrayBufferList::~ArrayBufferList()
+{
+
 }

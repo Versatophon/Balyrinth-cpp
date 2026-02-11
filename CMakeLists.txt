@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD 20)
 add_subdirectory(LibLabyrinth)
 add_subdirectory(LibSimpleMaths)
 add_subdirectory(BalyrinthGenerator)
+add_subdirectory(Mazemerizer)
 
 #"CMAKE_TOOLCHAIN_FILE": "/opt/vcpkg/scripts/buildsystems/vcpkg.cmake",
 #"CMAKE_TOOLCHAIN_FILE": "${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",

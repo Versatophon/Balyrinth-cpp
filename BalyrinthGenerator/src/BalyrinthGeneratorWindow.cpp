@@ -32,6 +32,7 @@ extern "C" {
 
 #include "Tools/SettingsLoadSave.h"
 
+#include "GL/Renderable.h"
 #include "GL/Binder.h"
 
 //TODO: utiliser une table d'indirection contenant les coordonn�es normalis�es de chaque node, avec des g�n�rateurs
@@ -56,14 +57,6 @@ public:
         mElementCount = pGeometryIndices.size();
         mIndices = new IndexBuffer(mElementCount * sizeof(uint16_t), BufferUsage::Dynamic, pGeometryIndices.data());
     }
-
-    //Mesh(ShaderProgram* pShaderProgram, GeometryType pGeometryType)
-    //{
-    //    mVao = new Vao;
-    //    mVao->Init();
-    //    mVertexBuffers = new ArrayBuffer * [2];
-    //
-    //}
 
     ~Mesh()
     {
@@ -230,9 +223,6 @@ int32_t BalyrinthGeneratorWindow::Init()
         }
     }
 
-
-
-
     mMatricesUbo = new Ubo(sizeof(Matrix4f) * 2, "matrices");
     mMatrices = (Matrix4f*)mMatricesUbo->GetMemory();
 
@@ -293,38 +283,17 @@ int32_t BalyrinthGeneratorWindow::Init()
     mShader->LinkUbo(mModelsUbo);
     mShader->LinkUbo(mColorsUbo);
 
-    uint32_t lVerticesCount = (((mMazeGeometryParameters.Height * mMazeGeometryParameters.Width) - 1) + (mMazeGeometryParameters.Height + mMazeGeometryParameters.Width) * 2) * 6;
+    uint32_t lVertexCount = (((mMazeGeometryParameters.Height * mMazeGeometryParameters.Width) - 1) + (mMazeGeometryParameters.Height + mMazeGeometryParameters.Width) * 2) * 6;
 
     //Initialize edges geometry
-    mLabyrinthVao = new Vao;
-
-    mLabyrinthVBufs = new ArrayBuffer * [2];
-    mLabyrinthVBufs[0] = new ArrayBuffer(lVerticesCount * sizeof(float) * 3, BufferUsage::Dynamic, nullptr);
-    mLabyrinthVBufs[1] = new ArrayBuffer(lVerticesCount * sizeof(uint8_t), BufferUsage::Dynamic, nullptr);
-    mLabyrinthVao->Init();
-    mLabyrinthVao->ConfigureArrayBuffers(mShader, mLabyrinthVBufs);
+    mRenderableLabyrinth = new Renderable(mShader, lVertexCount);
 
     //Initialize nodes geometry
-    mNodesVao = new Vao;
+    mRenderableNodes = new Renderable(mShader, lVertexCount);
 
-    mNodesVBufs = new ArrayBuffer * [2];
-    mNodesVBufs[0] = new ArrayBuffer(lVerticesCount * sizeof(float) * 3, BufferUsage::Dynamic, nullptr);
-    mNodesVBufs[1] = new ArrayBuffer(lVerticesCount * sizeof(uint8_t), BufferUsage::Dynamic, nullptr);
-    mNodesVao->Init();
-    mNodesVao->ConfigureArrayBuffers(mShader, mNodesVBufs);
-
-    //mNodesMesh = new Mesh(mShader, )
-
-    mPathVao = new Vao;
-   
-    mPathVBufs = new ArrayBuffer * [2];
-    mPathVBufs[0] = new ArrayBuffer(0 * sizeof(float) * 3, BufferUsage::Dynamic, nullptr);
-    mPathVBufs[1] = new ArrayBuffer(0 * sizeof(uint8_t), BufferUsage::Dynamic, nullptr);
-    mPathVao->Init();
-    mPathVao->ConfigureArrayBuffers(mShader, mPathVBufs);
+    mRenderableLongestPath = new Renderable(mShader, 0);
 
     {
-
         uint8_t lBaseIndex = 6;
 
         std::vector<Vector3f> lCollapsedVertices =
@@ -372,7 +341,7 @@ int32_t BalyrinthGeneratorWindow::Init()
 
     mMainTransform.SetScale(100.f);
 
-    mCurrentPositionInBuffer = 0;
+    mRenderableLabyrinth->CurrentPositionInBuffer = 0;
     mVerticesToUpload.clear();
 
     Resize(Vector2i{ (int32_t)GetWidth(), (int32_t)GetHeight() });
@@ -473,30 +442,32 @@ void BalyrinthGeneratorWindow::Render()
 {
     if (mNeedToCleanGeometry)
     {
-        uint32_t lVerticesCount = (((mMazeGeometryParameters.Height * mMazeGeometryParameters.Width) - 1) + (mMazeGeometryParameters.Height + mMazeGeometryParameters.Width) * 2) * 6;
-        mLabyrinthVBufs[0]->Upload(lVerticesCount * sizeof(float) * 3, nullptr);
+        uint32_t lVertexCount = (((mMazeGeometryParameters.Height * mMazeGeometryParameters.Width) - 1) + (mMazeGeometryParameters.Height + mMazeGeometryParameters.Width) * 2) * 6;
+        mRenderableLabyrinth->VertexBuffers[0]->SetSize(lVertexCount * sizeof(float) * 3);
 
-        std::vector<uint8_t> lTempColorIndex(lVerticesCount, 0);
-        mLabyrinthVBufs[1]->Upload(lVerticesCount * sizeof(uint8_t), lTempColorIndex.data());
+        //TODO: use a different shader instead of uploading a color index array
+        //Paint all vertices in default path color
+        std::vector<uint8_t> lTempColorIndex(lVertexCount, 0);
+        mRenderableLabyrinth->VertexBuffers[1]->Upload(lVertexCount * sizeof(uint8_t), lTempColorIndex.data());
 
-        mNodesVBufs[0]->Upload((mMazeGeometryParameters.Height * mMazeGeometryParameters.Width) * 6 * sizeof(float) * 3, nullptr);
-        mNodesVBufs[1]->Upload(mNodesNeigborCount.size() * sizeof(uint8_t), mNodesNeigborCount.data());
+        mRenderableNodes->VertexBuffers[0]->SetSize(lVertexCount * sizeof(float) * 3);
+        mRenderableNodes->VertexBuffers[1]->SetSize(mNodesNeigborCount.size() * sizeof(uint8_t));
 
-        mPathVertexCount = 0;
+        mRenderableLongestPath->VertexBuffers[0]->SetSize(0);
+        mRenderableLongestPath->VertexBuffers[1]->SetSize(0);
 
-        mPathVBufs[0]->Upload(0, nullptr);
-        mPathVBufs[1]->Upload(0, nullptr);
+        mRenderableLongestPath->CurrentPositionInBuffer = 0;
 
-        mCurrentPositionInBuffer = 0;
-        mCurrentPositionInNodesBuffer = 0;
+        mRenderableLabyrinth->CurrentPositionInBuffer = 0;
+        mRenderableNodes->CurrentPositionInBuffer = 0;
         mNeedToCleanGeometry = false;
     }
 
     if (!mVerticesToUpload.empty())
     {
         uint32_t lSize = mVerticesToUpload.size() * sizeof(float);
-        mLabyrinthVBufs[0]->PartialUpload(mCurrentPositionInBuffer, lSize, mVerticesToUpload.data());
-        mCurrentPositionInBuffer += lSize;
+        mRenderableLabyrinth->VertexBuffers[0]->PartialUpload(mRenderableLabyrinth->CurrentPositionInBuffer, lSize, mVerticesToUpload.data());
+        mRenderableLabyrinth->CurrentPositionInBuffer += lSize;
 
         mVerticesToUpload.clear();
     }
@@ -504,11 +475,11 @@ void BalyrinthGeneratorWindow::Render()
     if (!mForNodesVerticesToUpload.empty())
     {
         uint32_t lSize = mForNodesVerticesToUpload.size() * sizeof(float);
-        mNodesVBufs[0]->PartialUpload(mCurrentPositionInNodesBuffer, lSize, mForNodesVerticesToUpload.data());
+        mRenderableNodes->VertexBuffers[0]->PartialUpload(mRenderableNodes->CurrentPositionInBuffer, lSize, mForNodesVerticesToUpload.data());
+
         //put it in another conditionnal ?
-        mNodesVBufs[1]->Upload(mNodesNeigborCount.size() * sizeof(uint8_t), mNodesNeigborCount.data());
-        mCurrentPositionInNodesBuffer += lSize;
-            
+        mRenderableNodes->VertexBuffers[1]->Upload(mNodesNeigborCount.size() * sizeof(uint8_t), mNodesNeigborCount.data());
+        mRenderableNodes->CurrentPositionInBuffer += lSize;
 
         mForNodesVerticesToUpload.clear();
     }
@@ -516,12 +487,12 @@ void BalyrinthGeneratorWindow::Render()
     if (!mForPathVerticesToUpload.empty())
     {
         uint32_t lSize = mForPathVerticesToUpload.size() * sizeof(float);
-        mPathVertexCount = mForPathVerticesToUpload.size() / 3;
+        mRenderableLongestPath->CurrentPositionInBuffer = mForPathVerticesToUpload.size() * sizeof(float);
 
         std::vector<uint8_t> lTempColorIndex(mForPathVerticesToUpload.size(), 5);
 
-        mPathVBufs[0]->Upload(lSize, mForPathVerticesToUpload.data());
-        mPathVBufs[1]->Upload(mForPathVerticesToUpload.size(), lTempColorIndex.data());
+        mRenderableLongestPath->VertexBuffers[0]->Upload(lSize, mForPathVerticesToUpload.data());
+        mRenderableLongestPath->VertexBuffers[1]->Upload(mForPathVerticesToUpload.size(), lTempColorIndex.data());
 
         mForPathVerticesToUpload.clear();
     }
@@ -577,7 +548,6 @@ void BalyrinthGeneratorWindow::Render()
     Binder lShaderBinder(*mShader);
 
     {
-
         //Mémoire pour un Node: 6 * (3 * 4 + 1) = 78 octets 
         //Mémoire avec liste: 4 * (3 * 4 + 1) + 6 * 2 = 64 octets 
         mShader->UpdateUniform("model_index", 0);
@@ -589,50 +559,39 @@ void BalyrinthGeneratorWindow::Render()
 #if 1
         if (mRenderEdges)
         {
-            Binder lEdgesBinder(*mLabyrinthVao);
-            glDrawArrays(GL_TRIANGLES, 0, mCurrentPositionInBuffer / (sizeof(float)*3));
+            mRenderableLabyrinth->Draw();
         }
 
         if (mRenderCells)
         {
-            Binder lCellsBider(*mNodesVao);
-            glDrawArrays(GL_TRIANGLES, 0, mCurrentPositionInNodesBuffer / (sizeof(float) * 3));
+            mRenderableNodes->Draw();
         }
 
         if (mRenderPath)
         {
-            Binder lPathBinder(*mPathVao);
-            glDrawArrays(GL_TRIANGLES, 0, mPathVertexCount);
+            mRenderableLongestPath->Draw();
         }
 
         if (mShowNeighbors)
         {
             for (uint32_t i = 0; i < 8; ++i)
             {
-                //Binder lNeighborShaderBinder(*mShaders[i]);
-
                 mShader->UpdateUniform("model_index", i+1);
 
                 if (mRenderEdges)
                 {
-                    Binder lEdgesBinder(*mLabyrinthVao);
-                    glDrawArrays(GL_TRIANGLES, 0, mCurrentPositionInBuffer / (sizeof(float) * 3));
+                    mRenderableLabyrinth->Draw();
                 }
 
                 if (mRenderCells)
                 {
-                    Binder lCellsBider(*mNodesVao);
-                    glDrawArrays(GL_TRIANGLES, 0, mCurrentPositionInNodesBuffer / (sizeof(float) * 3));
+                    mRenderableNodes->Draw();
                 }
 
                 if (mRenderPath)
                 {
-                    Binder lPathBinder(*mPathVao);
-                    glDrawArrays(GL_TRIANGLES, 0, mPathVertexCount);
+                    mRenderableLongestPath->Draw();
                 }
-
-                //Binder lNeighborsEdgesBinder(*mVaos[i]);
-                //glDrawArrays(GL_TRIANGLES, 0, mCurrentPositionInBuffer / (sizeof(float) * 3));
             }
         }
 #endif
@@ -741,8 +700,6 @@ void BalyrinthGeneratorWindow::ProcessImGui()
         ImGui::SameLine();
         ImGui::Checkbox("Keep this seed", &mKeepSeed);
 
-        
-        
         //glGetInteger64v(GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX, );
 
         //GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX;
@@ -774,9 +731,6 @@ void BalyrinthGeneratorWindow::ProcessImGui()
         ImGui::End();
 
         ImGui::Begin("Graphics State");
-        //int32_t lGpuMemory = 0;
-        //int32_t lGpuTotalMemory = 0;
-
 
         ImGui::Text("%s", mGraphicsState.RendererName.c_str());
         
@@ -795,21 +749,16 @@ void BalyrinthGeneratorWindow::ProcessImGui()
         }
         
 
-        //glGetIntegerv(GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX, &lGpuMemory);
-        //glGetIntegerv(GL_GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX, &lGpuTotalMemory);
-
         int lVerticesCount =
-            mCurrentPositionInBuffer / (sizeof(float) * 3) +
-            mCurrentPositionInNodesBuffer / (sizeof(float) * 3) +
-            mPathVertexCount;
+            mRenderableLabyrinth->CurrentPositionInBuffer / (sizeof(float) * 3) +
+            mRenderableNodes->CurrentPositionInBuffer / (sizeof(float) * 3) +
+            mRenderableLongestPath->CurrentPositionInBuffer / (sizeof(float) * 3);
 
         int lTriangleCount = lVerticesCount / 3;
 
         int lMemoryUsed = lVerticesCount * sizeof(float) * 3;
 
         lMemoryUsed /= (1024 * 1024);
-
-        //ImGui::Text("Memory %i/%i", lGpuMemory, lGpuTotalMemory);
 
         ImGui::Text("%i vertices / %i triangles", lVerticesCount, lTriangleCount);
 

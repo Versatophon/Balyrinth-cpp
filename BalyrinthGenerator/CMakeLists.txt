@@ -19,6 +19,8 @@ add_executable(BalyrinthGenerator
     src/GL/Binder.cpp
     src/GL/Buffers.h
     src/GL/Buffers.cpp
+    src/GL/Renderable.h
+    src/GL/Renderable.cpp
     src/GL/Shader.h
     src/GL/Shader.cpp
     src/GL/Tex.h

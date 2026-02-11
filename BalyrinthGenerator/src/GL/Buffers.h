@@ -33,6 +33,8 @@ public:
 
     void Debind() const;
 
+    void SetSize(size_t pSize);
+
     void Upload(size_t pSize, void* pData);
 
     void PartialUpload(size_t pOffset, size_t pSize, const void* pData);
@@ -95,4 +97,16 @@ public:
 
 private:
     uint32_t mId = 0;
+};
+
+
+class ArrayBufferList
+{
+public:
+    ArrayBufferList(uint32_t pBufferCount, const BufferUsage* pBufferUsage);
+    ~ArrayBufferList();
+
+private:
+    uint32_t mBufferCount = 0;
+    ArrayBuffer* mBuffers = nullptr;
 };

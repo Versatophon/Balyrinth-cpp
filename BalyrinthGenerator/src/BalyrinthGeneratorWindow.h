@@ -33,6 +33,8 @@ class Mesh;
 struct Matrix4f;
 struct Vector2i;
 
+struct Renderable;
+
 struct GraphicsState
 {
     int32_t TotalMemory = 0;
@@ -115,6 +117,8 @@ private:
     bool mRenderEdges = true;
     bool mRenderPath = false;
 
+    bool mRenderPathAnimation = false;
+
     //Convert in materials
     Color mBackgroundColor { 0.2f, 0.4f, 0.2f, 1.f };
     Color* mColors = nullptr;
@@ -152,28 +156,21 @@ private:
     Ubo* mColorsUbo = nullptr;
 
     bool mNeedToCleanGeometry = false;
-    ArrayBuffer** mLabyrinthVBufs = nullptr;
-    Vao* mLabyrinthVao = nullptr;
-    uint32_t mCurrentPositionInBuffer = 0;
-
+    
+    Renderable* mRenderableLabyrinth = nullptr;
 
     Mesh* mNodesMesh = nullptr;
 
-    ArrayBuffer** mNodesVBufs = nullptr;
-    Vao* mNodesVao = nullptr;
-    uint32_t mCurrentPositionInNodesBuffer = 0;
+    Renderable* mRenderableNodes = nullptr;
     std::vector<uint8_t> mNodesNeigborCount;
-
 
     Vector3f mRotationCenter;
 
     Transformf mMainTransform;
     std::vector<Transformf> mNeighborTransforms;
 
-    // Longuest path
-    ArrayBuffer** mPathVBufs = nullptr;
-    Vao* mPathVao = nullptr;
-    size_t mPathVertexCount = 0;
+    // Longest path
+    Renderable* mRenderableLongestPath = nullptr;
 
     // Cube For tests
     Mesh* mCubeMesh = nullptr;
