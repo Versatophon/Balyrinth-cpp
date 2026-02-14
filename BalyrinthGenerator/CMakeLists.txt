@@ -22,7 +22,6 @@ IF (WIN32)
   find_package(OpenGL REQUIRED)
   find_package(GLEW CONFIG REQUIRED)
   find_package(SDL3 REQUIRED CONFIG REQUIRED)
-  find_package(imgui REQUIRED)
 ELSE()
   find_package(PkgConfig REQUIRED) 
   find_package(OpenGL)
@@ -78,7 +77,6 @@ target_link_libraries(${ProjectName}
         LibLabyrinth
         LibSimpleMaths
 )
-#        imgui::imgui
 
 if(WIN32)
     add_custom_command(TARGET ${ProjectName} POST_BUILD

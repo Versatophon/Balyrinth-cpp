@@ -23,7 +23,7 @@ Some rendered samples:
 
 ### Prerequisites
 
-You need to have these packages installed via vcpkg:
+You need to have these packages installed via vcpkg (for Windows):
 - For `LibLabyrinth`:
 	- pcg:
 		```
@@ -39,10 +39,18 @@ You need to have these packages installed via vcpkg:
 		```
 		vcpkg install sdl3
 		```
-	- imgui[core,sdl3-binding,opengl3-binding]:
-		```
-		vcpkg install imgui[core,sdl3-binding,opengl3-binding] --recurse
-		```
+
+For Linux instal dev packages via apt or dnf because vcpkg for linux may miss some configurations for imgui an sdl3:
+
+    - glew
+	- sdl3
+	- pcg
+
+You need to use imgui as submodule (linux and windows), execute this commant in root dir of the project:
+
+```
+git submodule update --init --recursive
+```
 
 ### Build project
 
