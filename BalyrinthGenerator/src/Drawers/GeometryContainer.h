@@ -4,22 +4,8 @@
 
 #include <Vector2f.h>
 
+struct MazeGeometryParameters;
 class Shape;
-
-struct Bone
-{
-    uint32_t NodeIndex;
-    uint32_t Direction;
-};
-
-struct MazeGeometryParameters
-{
-    size_t Width = 10;
-    size_t Height = 10;
-
-    float PointWidth = .5f;
-    float LineWidth = .25f;
-};
 
 class GeometryContainer
 {

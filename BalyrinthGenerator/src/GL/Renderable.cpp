@@ -1,6 +1,11 @@
 #include "Renderable.h"
 
+#include <GL/glew.h>
+
 #include "Binder.h"
+
+#include "Buffers/ArrayBuffer.h"
+#include "Buffers/Vao.h"
 
 Renderable::Renderable(ShaderProgram* pShader, uint32_t pVertexCount):
     VertexCount(pVertexCount)

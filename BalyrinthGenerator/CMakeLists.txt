@@ -10,10 +10,16 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(ImGuiDir "../imgui/")
 set(ImGuiBackendsDir "../imgui/backends/")
 set(ImGuiSrcs
+    "${ImGuiDir}imconfig.h"
     "${ImGuiDir}imgui.cpp"
+    "${ImGuiDir}imgui.h"
     "${ImGuiDir}imgui_draw.cpp"
+    "${ImGuiDir}imgui_internal.h"
     "${ImGuiDir}imgui_tables.cpp"
     "${ImGuiDir}imgui_widgets.cpp"
+    "${ImGuiDir}imstb_rectpack.h"
+    "${ImGuiDir}imstb_textedit.h"
+    "${ImGuiDir}imstb_truetype.h"
     "${ImGuiBackendsDir}imgui_impl_opengl3.cpp"
     "${ImGuiBackendsDir}imgui_impl_sdl3.cpp"
 )
@@ -32,24 +38,42 @@ ELSE()
   link_libraries(${GLEW_LIBRARIES})
 ENDIF()
 
-add_executable(${ProjectName}
+set(ProjectSrcs
     src/main.cpp
     src/BalyrinthGeneratorWindow.h
     src/BalyrinthGeneratorWindow.cpp
     src/ManagedWindow.h
     src/ManagedWindow.cpp
+    src/Drawing/Color.h
     src/GL/Binder.h
     src/GL/Binder.cpp
-    src/GL/Buffers.h
-    src/GL/Buffers.cpp
+    src/GL/Enums.h
     src/GL/Renderable.h
     src/GL/Renderable.cpp
+    src/GL/RenderableMesh.h
+    src/GL/RenderableMesh.cpp
     src/GL/Shader.h
     src/GL/Shader.cpp
-    src/GL/Tex.h
-    src/GL/Tex.cpp
+    src/GL/ShaderProgram.h
+    src/GL/ShaderProgram.cpp
+    src/GL/Texture.h
+    src/GL/Texture.cpp
     src/GL/Viewport.h
     src/GL/Viewport.cpp
+    src/GL/Buffers/ArrayBuffer.h
+    src/GL/Buffers/ArrayBuffer.cpp
+    src/GL/Buffers/ArrayBufferList.h
+    src/GL/Buffers/ArrayBufferList.cpp
+    src/GL/Buffers/Buffer.h
+    src/GL/Buffers/Buffer.cpp
+    src/GL/Buffers/IndexBuffer.h
+    src/GL/Buffers/IndexBuffer.cpp
+    src/GL/Buffers/Ubo.h
+    src/GL/Buffers/Ubo.cpp
+    src/GL/Buffers/Vao.h
+    src/GL/Buffers/Vao.cpp
+    src/Graphics/GraphicsState.h
+    src/Graphics/GraphicsState.cpp
     src/Drawers/GeometryContainer.h
     src/Drawers/ContiguousMazeDrawer.h
     src/Drawers/ContiguousMazeDrawer.cpp
@@ -60,7 +84,18 @@ add_executable(${ProjectName}
     src/Resources/InlineShaders.h
     src/Tools/SettingsLoadSave.h
     src/Tools/SettingsLoadSave.cpp
+)
+
+set(AllFiles
+    ${ProjectSrcs}
     ${ImGuiSrcs}
+)
+
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "Source" FILES ${ProjectSrcs})
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/${ImGuiDir}" PREFIX "Externals/ImGui" FILES ${ImGuiSrcs})
+
+add_executable(${ProjectName}
+    ${AllFiles}
 )
 
 target_include_directories(${ProjectName} 

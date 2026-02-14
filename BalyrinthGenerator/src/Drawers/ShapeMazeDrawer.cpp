@@ -2,6 +2,8 @@
 
 #include <Shape.h>
 
+#include "MazeGeometyParameters.h"
+
 ShapeMazeDrawer::ShapeMazeDrawer(GeometryContainer& pGeometryContainer) :
     MazeDrawer(pGeometryContainer)
 {

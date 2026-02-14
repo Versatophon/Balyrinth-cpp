@@ -4,6 +4,8 @@
 
 #include <cfloat>
 
+#include "MazeGeometyParameters.h"
+
 #define DEBUG_MULT .001f
 
 MazeDrawer::MazeDrawer(GeometryContainer& pGeometryContainer) :

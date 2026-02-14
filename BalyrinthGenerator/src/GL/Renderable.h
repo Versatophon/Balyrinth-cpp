@@ -1,7 +1,10 @@
 #pragma once
 
-#include <GL/glew.h>
-#include "Buffers.h"
+#include <cstdint>
+
+class ArrayBuffer;
+class ShaderProgram;
+class Vao;
 
 struct Renderable
 {

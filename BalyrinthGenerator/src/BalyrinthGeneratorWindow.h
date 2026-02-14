@@ -21,6 +21,10 @@ extern "C" {
 #include <Node.h>//INVALID_NODE_INDEX
 
 #include "Drawers/GeometryContainer.h"
+#include "Drawing/Color.h"
+#include "Drawers/MazeGeometyParameters.h"
+
+#include "Graphics/GraphicsState.h"
 
 class Viewport;
 class ShaderProgram;
@@ -28,19 +32,12 @@ class Ubo;
 class Vao;
 class ArrayBuffer;
 class IndexBuffer;
-class Mesh;
+class RenderableMesh;
 
 struct Matrix4f;
 struct Vector2i;
 
 struct Renderable;
-
-struct GraphicsState
-{
-    int32_t TotalMemory = 0;
-    int32_t CheckFreeMemoryEnum = 0;
-    std::string RendererName;
-};
 
 template <typename T> struct SelectableGroup
 {
@@ -69,14 +66,6 @@ template <typename T> struct SelectableGroup
 //1287658791410650253 11769651394140859956
 //1044605749197665528 5506795945906036838 
 //17179595647950913834 5676496069824750797 //Wave seed
-
-struct Color
-{
-    float R;
-    float G;
-    float B;
-    float A;
-};
 
 class BalyrinthGeneratorWindow:public ManagedWindow, GeometryContainer
 {
@@ -159,7 +148,7 @@ private:
     
     Renderable* mRenderableLabyrinth = nullptr;
 
-    Mesh* mNodesMesh = nullptr;
+    RenderableMesh* mNodesMesh = nullptr;
 
     Renderable* mRenderableNodes = nullptr;
     std::vector<uint8_t> mNodesNeigborCount;
@@ -173,7 +162,7 @@ private:
     Renderable* mRenderableLongestPath = nullptr;
 
     // Cube For tests
-    Mesh* mCubeMesh = nullptr;
+    RenderableMesh* mCubeMesh = nullptr;
 
     //neighbors stuff
     bool mShowNeighbors = false;
