@@ -5,6 +5,8 @@
 
 #include <cstdint>
 
+
+//TODO: Add item size here
 class ArrayBuffer :public Buffer
 {
 public:

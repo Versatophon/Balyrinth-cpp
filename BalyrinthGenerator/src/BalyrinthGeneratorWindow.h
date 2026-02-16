@@ -37,7 +37,7 @@ class RenderableMesh;
 struct Matrix4f;
 struct Vector2i;
 
-struct Renderable;
+class Renderable;
 
 template <typename T> struct SelectableGroup
 {
@@ -138,7 +138,9 @@ private:
 
     Viewport* mViewport = nullptr;
 
-    ShaderProgram* mShader = nullptr;
+    ShaderProgram* mLabyrinthShader = nullptr;
+    ShaderProgram* mNodeShader = nullptr;
+    ShaderProgram* mPathShader = nullptr;
     Ubo* mMatricesUbo = nullptr;
 
     Ubo* mModelsUbo = nullptr;
@@ -183,4 +185,6 @@ private:
 
     bool LoadColorConfiguration();
     void SaveColorConfiguration();
+
+    void RenderItem(ShaderProgram* pProgram, Renderable* pRenderable);
 };
