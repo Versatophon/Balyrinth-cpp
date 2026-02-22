@@ -4,15 +4,42 @@
 
 #include <cstdint>
 
+#if 0
 enum class Algorithm
 {
-	WallBreakerStackBackTrack,
-	WallBreakerQueueBackTrack,
-	WallBreakerRandomBackTrack,
+	WallBreakerStackBacktrack,
+	WallBreakerQueueBacktrack,
+	WallBreakerRandomBacktrack,
 	WallBreakerBloom,
+};
+#endif
+
+enum class RoomSelectMode
+{
+	Last,
+	Fill
+};
+
+enum class BacktrackMode
+{
+	Stack,
+	Queue,
+	Random,
+};
+
+enum class DirectionChangeMode
+{
+	Always,//Default mode, for each node connected, get a random direction
+	ForceAlways,//Force change direction if this direction is not the only available
+	OnLock,//When it's not possible to dig anymore, creates long corridors
+	OnFixedLength,//When dig fixed count on a specific direction, force change
+	ForceOnFixedLength,
+	OnRandomLength,//Compute a new length when get a wall or reach the length 
+	ForceOnRandomLength,
 };
 
 class Topology;
+class RoomNeighborhood;
 struct LabyrinthStepperId;
 struct Seed;
 
@@ -28,14 +55,14 @@ public:
 class LABYRINTH_API LabyrinthStepper
 {
 public:
-	LabyrinthStepper(Algorithm pAlgorithm);
+	LabyrinthStepper(RoomSelectMode pRoomSelectMode, BacktrackMode pBacktrackMode, DirectionChangeMode pDirectionChangeMode);
 	~LabyrinthStepper();
 
 	void SetUpdateListener(TopologyUpdaterListener* pListener);
 
-	void UpdateTopology(const Topology* pTopology);
+	void UpdateTopology(const Topology* pTopology, const RoomNeighborhood* pRoomNeighborhood);
 
-	void UpdateAlgorithm(Algorithm pAlgorithm);
+	void UpdateAlgorithm(RoomSelectMode pRoomSelectMode, BacktrackMode pBacktrackMode, DirectionChangeMode pDirectionChangeMode);
 
 	void InitiateGeneration(const Seed* pSeed = nullptr);
 

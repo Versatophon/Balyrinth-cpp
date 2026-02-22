@@ -40,19 +40,42 @@ enum class RoomType
 	Cubic,
 };
 
+#if 0
+class LABYRINTH_API RoomShape
+{
+public:
+	RoomShape(uint32_t pDriectionCount);
+	void SetDirection(uint32_t pDirectionIndex, )
+
+private:
+	uint32_t mDirectionCount;
+};
+
+RoomShape::RoomShape(uint32_t pDriectionCount):
+	mDirectionCount(pDriectionCount)
+{
+
+}
+#endif
+
+class RoomNeighborhood;
+
+//TODO: Constify
 class LABYRINTH_API Shape
 {
 public:
 	Shape();
 	virtual ~Shape();
+	Topology* GetTopology();
+	RoomNeighborhood* GetRoomNeighborhood();
 
-	virtual Topology* GetTopology() = 0;
 	virtual Vector3f GetNodeNormalizedPosition(uint32_t pIndex) = 0;
 	virtual Vector3f GetSpaceSize() = 0;
 	virtual Vector3f GetUnitSpaceDelta(uint32_t pIndex0, uint32_t pIndex1) = 0;
 
 protected:
 	Topology* mTopology = nullptr;
+	RoomNeighborhood* mRoomNeighborhood = nullptr;
 	RoomType mRoomType = RoomType::Undefined;
 };
 
@@ -60,3 +83,4 @@ typedef Shape* (ShapeGenerator)(Parameters& pParameters);
 
 LABYRINTH_API Shape* GenerateSquaresOnRectShape(Parameters& pParameters);
 LABYRINTH_API Shape* GenerateSquaresOnToreShape(Parameters& pParameters);
+LABYRINTH_API Shape* GenerateHexagonsOnRectShape(Parameters& pParameters);

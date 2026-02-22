@@ -13,6 +13,7 @@ add_library(LibLabyrinth SHARED
     src/LabyrinthApi.h
     src/Node.h
     src/Node.cpp
+    src/RoomNeighborhood.h
     src/Topology.h
     src/Topology.cpp
     src/Seed.h

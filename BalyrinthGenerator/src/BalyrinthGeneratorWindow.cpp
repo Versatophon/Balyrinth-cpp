@@ -30,8 +30,9 @@ extern "C" {
 
 #include "Resources/InlineShaders.h"
 
-#include "Drawers/ContiguousMazeDrawer.h"
-#include "Drawers/ShapeMazeDrawer.h"
+//#include "Drawers/ContiguousMazeDrawer.h"
+//#include "Drawers/ShapeMazeDrawer.h"
+#include "Drawers/MazeDrawer.h"
 
 #include "Tools/SettingsLoadSave.h"
 
@@ -65,26 +66,40 @@ template <typename T> bool ExecuteCombobox(const char* pLabel, SelectableGroup<T
 }
 
 BalyrinthGeneratorWindow::BalyrinthGeneratorWindow(): ManagedWindow(0, nullptr),
-    mLabyrinthStepper(LabyrinthStepper(Algorithm::WallBreakerQueueBackTrack)),
+    mLabyrinthStepper(LabyrinthStepper(RoomSelectMode::Last, BacktrackMode::Queue, DirectionChangeMode::Always)),
     mViewport(new Viewport)
 {
     mShapeGenerators = {{{"Squares On Tore", (void*)GenerateSquaresOnToreShape},
                          {"Squares On Rect", (void*)GenerateSquaresOnRectShape}}};
-    mShapeDrawModes = {{{"Shape", new ShapeMazeDrawer(*this)},
-                        {"Contiguous", new ContiguousMazeDrawer(*this)}}};
 
-    mAlgorithms = { {{"WB Stack Backtrack", Algorithm::WallBreakerStackBackTrack}, 
-                     {"WB Queue Backtrack", Algorithm::WallBreakerQueueBackTrack},
-                     {"WB Random Backtrack", Algorithm::WallBreakerRandomBackTrack},
-                     {"WB Bloom", Algorithm::WallBreakerBloom}}};
+    mShapeModes = {{{"Shape", ShapeMode::Shape},
+                    {"Contiguous", ShapeMode::Contiguous}}};
 
-    mLabyrinthStepper.SetUpdateListener(mShapeDrawModes.Item());
+    mRoomSelectMode = { {{"Last Room Added", RoomSelectMode::Last},
+                        {"Fill Room", RoomSelectMode::Fill}} };
+
+    mBacktrackModes = { {{"BT Stack", BacktrackMode::Stack},
+                         {"BT Queue", BacktrackMode::Queue},
+                         {"BT Random", BacktrackMode::Random}}};
+
+    mDirectionChangeModes = { {{"Always", DirectionChangeMode::Always},
+                               {"ForceAlways", DirectionChangeMode::ForceAlways},
+                               {"OnLock", DirectionChangeMode::OnLock},
+                               {"OnFixedLength", DirectionChangeMode::OnFixedLength},
+                               {"ForceOnFixedLength", DirectionChangeMode::ForceOnFixedLength},
+                               {"OnRandomLength", DirectionChangeMode::OnRandomLength},
+                               {"ForceOnRandomLength", DirectionChangeMode::ForceOnRandomLength}}};
+
+    mMazeDrawer = new MazeDrawer(*this, mShapeModes.Item());
+
+    mLabyrinthStepper.SetUpdateListener(mMazeDrawer);
 
     {
         mForNodesLut.resize(mMazeGeometryParameters.Height * mMazeGeometryParameters.Width);
-        mNodesNeigborCount.resize(mMazeGeometryParameters.Height * mMazeGeometryParameters.Width * 6);
+        //mNodesNeighborCount.resize(mMazeGeometryParameters.Height * mMazeGeometryParameters.Width * 6);
+        mNodesNeighborCount.resize(mMazeGeometryParameters.Height * mMazeGeometryParameters.Width * mMazeDrawer->GetVertexCountPerNode());
 
-        memset(mNodesNeigborCount.data(), 0, mNodesNeigborCount.size());
+        memset(mNodesNeighborCount.data(), 0, mNodesNeighborCount.size());
     }
 
     InternalUpdateTopology();
@@ -97,10 +112,12 @@ BalyrinthGeneratorWindow::BalyrinthGeneratorWindow(): ManagedWindow(0, nullptr),
  
 BalyrinthGeneratorWindow::~BalyrinthGeneratorWindow()
 {
-    for (std::pair<std::string, TopologyUpdaterListener*> lListener : mShapeDrawModes.mItems)
-    {
-        delete lListener.second;
-    }
+    //for (std::pair<std::string, TopologyUpdaterListener*> lListener : mShapeDrawModes.mItems)
+    //{
+    //    delete lListener.second;
+    //}
+
+    delete mMazeDrawer;
 
     delete mViewport;
 }
@@ -137,7 +154,7 @@ std::vector<uint32_t>& BalyrinthGeneratorWindow::GetForNodesLut()
 
 std::vector<uint8_t>& BalyrinthGeneratorWindow::GetForNodesCount()
 {
-    return mNodesNeigborCount;
+    return mNodesNeighborCount;
 }
 
 std::vector<float>& BalyrinthGeneratorWindow::GetForPathVerticesToAdd()
@@ -154,9 +171,10 @@ void BalyrinthGeneratorWindow::CleanupGeometry()
     mForPathVerticesToUpload.clear();
 
     mForNodesLut.resize(mMazeGeometryParameters.Height * mMazeGeometryParameters.Width);
-    mNodesNeigborCount.resize(mMazeGeometryParameters.Height * mMazeGeometryParameters.Width * 6);
+    //mNodesNeighborCount.resize(mMazeGeometryParameters.Height * mMazeGeometryParameters.Width * 6);
+    mNodesNeighborCount.resize(mMazeGeometryParameters.Height * mMazeGeometryParameters.Width * mMazeDrawer->GetVertexCountPerNode());
 
-    memset(mNodesNeigborCount.data(), 0, mNodesNeigborCount.size());
+    memset(mNodesNeighborCount.data(), 0, mNodesNeighborCount.size());
 }
 
 int32_t BalyrinthGeneratorWindow::Init()
@@ -447,7 +465,8 @@ void BalyrinthGeneratorWindow::Render()
         //TODO: use a different shader instead of uploading a color index array
         mRenderableLabyrinth->SetItemCount(lMaxVertexCount);
 
-        mRenderableNodes->SetItemCount(mMazeGeometryParameters.Height * mMazeGeometryParameters.Width * 6);
+        //mRenderableNodes->SetItemCount(mMazeGeometryParameters.Height * mMazeGeometryParameters.Width * 6);
+        mRenderableNodes->SetItemCount(mMazeGeometryParameters.Height * mMazeGeometryParameters.Width * mMazeDrawer->GetVertexCountPerNode());
 
         mRenderableLongestPath->SetItemCount(0);
         mNeedToCleanGeometry = false;
@@ -467,7 +486,7 @@ void BalyrinthGeneratorWindow::Render()
         size_t lVertexCountToUpload = mForNodesVerticesToUpload.size() / 3;
 
         mRenderableNodes->Append(0, lVertexCountToUpload, mForNodesVerticesToUpload.data());
-        mRenderableNodes->Update(1, 0, mRenderableNodes->GetMaxVertexCount(), mNodesNeigborCount.data());
+        mRenderableNodes->Update(1, 0, mRenderableNodes->GetMaxVertexCount(), mNodesNeighborCount.data());
 
         mForNodesVerticesToUpload.clear();
     }
@@ -591,16 +610,19 @@ void BalyrinthGeneratorWindow::ProcessImGui()
             ImGui::Text("%f fps.", ImGui::GetIO().Framerate);
 
             bool lDrawParamChanged = false;
-            if (ExecuteCombobox("Shape Draw mode", mShapeDrawModes))
+            if (ExecuteCombobox("Shape Mode", mShapeModes))
             {//HACK
                 //mMazeGeometryParameters.ViewOffset = { 0, 0 };
-                mLabyrinthStepper.SetUpdateListener(mShapeDrawModes.Item());
+                //mLabyrinthStepper.SetUpdateListener(mShapeDrawModes.Item());
+                mMazeDrawer->SetShapeMode(mShapeModes.Item());
                 lDrawParamChanged = true;
             }
 
             lChanged |= ExecuteCombobox("Shape", mShapeGenerators);
 
-            lChanged |= ExecuteCombobox("Algorithm", mAlgorithms);
+            lChanged |= ExecuteCombobox("Room Select", mRoomSelectMode);
+            lChanged |= ExecuteCombobox("Backtrack", mBacktrackModes);
+            lChanged |= ExecuteCombobox("Direction Change", mDirectionChangeModes);
 
             lChanged |= ImGui::DragScalar("Width", ImGuiDataType_::ImGuiDataType_U64, &mMazeGeometryParameters.Width, .2f, &mMin, &mMax);
             lChanged |= ImGui::DragScalar("Height", ImGuiDataType_::ImGuiDataType_U64, &mMazeGeometryParameters.Height, .2f, &mMin, &mMax);
@@ -736,9 +758,9 @@ void BalyrinthGeneratorWindow::InternalUpdateTopology()
 
     mShapeProvider = ((ShapeGenerator*)mShapeGenerators.Item())(lParameters);
 
-    mLabyrinthStepper.UpdateTopology(mShapeProvider->GetTopology());
+    mLabyrinthStepper.UpdateTopology(mShapeProvider->GetTopology(), mShapeProvider->GetRoomNeighborhood());
     mCurrentTopology = mLabyrinthStepper.GetTopology();
-    mLabyrinthStepper.UpdateAlgorithm(mAlgorithms.Item());
+    mLabyrinthStepper.UpdateAlgorithm(mRoomSelectMode.Item(), mBacktrackModes.Item(), mDirectionChangeModes.Item());
 
     delete[] lParameters.Params;
 }

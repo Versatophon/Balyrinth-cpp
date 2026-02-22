@@ -3,7 +3,11 @@
 #include <Vector3f.h>
 #include <Labyrinth.h>
 
+#include "ShapeMode.h"
+
 #include "GeometryContainer.h"
+
+class NodeShapeProvider;
 
 class MazeDrawer;
 typedef void (MazeDrawer::* DrawRectangleFunc)(const Vector3f& pMin, const Vector3f& pMax);
@@ -11,7 +15,11 @@ typedef void (MazeDrawer::* DrawRectangleFunc)(const Vector3f& pMin, const Vecto
 class MazeDrawer:public TopologyUpdaterListener
 {
 public:
-    MazeDrawer(GeometryContainer& pGeometryContainer);
+    MazeDrawer(GeometryContainer& pGeometryContainer, ShapeMode pShapeMode);
+
+    void SetShapeMode(ShapeMode pShapeMode);
+
+    size_t GetVertexCountPerNode() const;
 
     void AddFirstNode(uint32_t pNodeIndex) override;
     void AddEdge(uint32_t pNodeIndex0, uint32_t pNodeIndex1) override;
@@ -39,11 +47,17 @@ protected:
     Vector3f mSpaceSize = { 1, 1, 1 };
     float mHalfWidth = .5f;
 
+    //size_t mVertexCountPerNode = 12;
+
+    ShapeMode mShapeMode;
+
+    NodeShapeProvider* mNodeShapeProvider = nullptr;
+
     void DrawNode(uint32_t pIndex, bool pInit = false);
 
-    void DrawAANode(const Vector3f& pMin, const Vector3f& pMax);
-    void DrawAAEdge(const Vector3f& pMin, const Vector3f& pMax);
-    void DrawAAPath(const Vector3f& pMin, const Vector3f& pMax);
+    //void DrawAANode(const Vector3f& pMin, const Vector3f& pMax);
+    //void DrawAAEdge(const Vector3f& pMin, const Vector3f& pMax);
+    //void DrawAAPath(const Vector3f& pMin, const Vector3f& pMax);
 
-    virtual void DrawEdge(DrawRectangleFunc pFunction, uint32_t pNodeIndex0, uint32_t pNodeIndex1, float pDepth) = 0;
+    void DrawEdge(/*DrawRectangleFunc pFunction, */std::vector<float>& pContainer, uint32_t pNodeIndex0, uint32_t pNodeIndex1, float pDepth);
 };

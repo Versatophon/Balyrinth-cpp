@@ -23,6 +23,7 @@ extern "C" {
 #include "Drawers/GeometryContainer.h"
 #include "Drawing/Color.h"
 #include "Drawers/MazeGeometyParameters.h"
+#include "Drawers/ShapeMode.h"
 
 #include "Graphics/GraphicsState.h"
 
@@ -38,6 +39,7 @@ struct Matrix4f;
 struct Vector2i;
 
 class Renderable;
+class MazeDrawer;
 
 template <typename T> struct SelectableGroup
 {
@@ -128,8 +130,12 @@ private:
     void InternalUpdateTopology();
 
     SelectableGroup<void*> mShapeGenerators;
-    SelectableGroup<TopologyUpdaterListener*> mShapeDrawModes;
-    SelectableGroup<Algorithm> mAlgorithms;
+    SelectableGroup<ShapeMode> mShapeModes;
+    SelectableGroup<RoomSelectMode> mRoomSelectMode;
+    SelectableGroup<BacktrackMode> mBacktrackModes;
+    SelectableGroup<DirectionChangeMode> mDirectionChangeModes;
+
+    MazeDrawer* mMazeDrawer = nullptr;
 
     std::unordered_set<uint32_t> mAlreadyProcessed;
     std::queue<std::pair<uint32_t, Vector2f>> mNodesToProcess;
@@ -153,7 +159,7 @@ private:
     RenderableMesh* mNodesMesh = nullptr;
 
     Renderable* mRenderableNodes = nullptr;
-    std::vector<uint8_t> mNodesNeigborCount;
+    std::vector<uint8_t> mNodesNeighborCount;
 
     Vector3f mRotationCenter;
 

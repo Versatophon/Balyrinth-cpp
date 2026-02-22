@@ -75,12 +75,9 @@ set(ProjectSrcs
     src/Graphics/GraphicsState.h
     src/Graphics/GraphicsState.cpp
     src/Drawers/GeometryContainer.h
-    src/Drawers/ContiguousMazeDrawer.h
-    src/Drawers/ContiguousMazeDrawer.cpp
+    src/Drawers/ShapeMode.h
     src/Drawers/MazeDrawer.h
     src/Drawers/MazeDrawer.cpp
-    src/Drawers/ShapeMazeDrawer.h
-    src/Drawers/ShapeMazeDrawer.cpp
     src/Resources/InlineShaders.h
     src/Tools/SettingsLoadSave.h
     src/Tools/SettingsLoadSave.cpp
@@ -109,6 +106,11 @@ target_link_libraries(${ProjectName}
         OpenGL::GL
         GLEW::GLEW
         SDL3::SDL3
+        LibLabyrinth
+        LibSimpleMaths
+)
+
+add_dependencies(${ProjectName}
         LibLabyrinth
         LibSimpleMaths
 )

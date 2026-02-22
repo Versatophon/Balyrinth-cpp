@@ -36,7 +36,7 @@ const char* sViewVertexSingleColorShSource =
 \n\
 in vec3 vPos;\n\
 \n\
-uniform int color_index;\n\
+uniform uint color_index;\n\
 uniform uint model_index;\n\
 \n\
 layout(std140) uniform matrices\n\
