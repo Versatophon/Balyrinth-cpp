@@ -66,7 +66,7 @@ template <typename T> bool ExecuteCombobox(const char* pLabel, SelectableGroup<T
 }
 
 BalyrinthGeneratorWindow::BalyrinthGeneratorWindow(): ManagedWindow(0, nullptr),
-    mLabyrinthStepper(LabyrinthStepper(RoomSelectMode::Last, BacktrackMode::Queue, DirectionChangeMode::Always)),
+mLabyrinthStepper(LabyrinthStepper({ RoomSelect::Last, Backtrack::Queue, ComputeDirection::Any })),
     mViewport(new Viewport)
 {
     mShapeGenerators = {{{"Squares On Tore", (void*)GenerateSquaresOnToreShape},
@@ -75,20 +75,15 @@ BalyrinthGeneratorWindow::BalyrinthGeneratorWindow(): ManagedWindow(0, nullptr),
     mShapeModes = {{{"Shape", ShapeMode::Shape},
                     {"Contiguous", ShapeMode::Contiguous}}};
 
-    mRoomSelectMode = { {{"Last Room Added", RoomSelectMode::Last},
-                        {"Fill Room", RoomSelectMode::Fill}} };
+    mRoomSelectMode = {{{"Last Room Added", RoomSelect::Last},
+                        {"Fill Room", RoomSelect::Fill}} };
 
-    mBacktrackModes = { {{"BT Stack", BacktrackMode::Stack},
-                         {"BT Queue", BacktrackMode::Queue},
-                         {"BT Random", BacktrackMode::Random}}};
+    mBacktrackModes = {{{"BT Stack", Backtrack::Stack},
+                        {"BT Queue", Backtrack::Queue},
+                        {"BT Random", Backtrack::Random}}};
 
-    mDirectionChangeModes = { {{"Always", DirectionChangeMode::Always},
-                               {"ForceAlways", DirectionChangeMode::ForceAlways},
-                               {"OnLock", DirectionChangeMode::OnLock},
-                               {"OnFixedLength", DirectionChangeMode::OnFixedLength},
-                               {"ForceOnFixedLength", DirectionChangeMode::ForceOnFixedLength},
-                               {"OnRandomLength", DirectionChangeMode::OnRandomLength},
-                               {"ForceOnRandomLength", DirectionChangeMode::ForceOnRandomLength}}};
+    mComputeDirectionModes = {{{"Any", ComputeDirection::Any},
+                               {"Force Change", ComputeDirection::ForceChange}}};
 
     mMazeDrawer = new MazeDrawer(*this, mShapeModes.Item());
 
@@ -622,7 +617,7 @@ void BalyrinthGeneratorWindow::ProcessImGui()
 
             lChanged |= ExecuteCombobox("Room Select", mRoomSelectMode);
             lChanged |= ExecuteCombobox("Backtrack", mBacktrackModes);
-            lChanged |= ExecuteCombobox("Direction Change", mDirectionChangeModes);
+            lChanged |= ExecuteCombobox("Compute Direction", mComputeDirectionModes);
 
             lChanged |= ImGui::DragScalar("Width", ImGuiDataType_::ImGuiDataType_U64, &mMazeGeometryParameters.Width, .2f, &mMin, &mMax);
             lChanged |= ImGui::DragScalar("Height", ImGuiDataType_::ImGuiDataType_U64, &mMazeGeometryParameters.Height, .2f, &mMin, &mMax);
@@ -760,7 +755,7 @@ void BalyrinthGeneratorWindow::InternalUpdateTopology()
 
     mLabyrinthStepper.UpdateTopology(mShapeProvider->GetTopology(), mShapeProvider->GetRoomNeighborhood());
     mCurrentTopology = mLabyrinthStepper.GetTopology();
-    mLabyrinthStepper.UpdateAlgorithm(mRoomSelectMode.Item(), mBacktrackModes.Item(), mDirectionChangeModes.Item());
+    mLabyrinthStepper.UpdateAlgorithm({ mRoomSelectMode.Item(), mBacktrackModes.Item(), mComputeDirectionModes.Item() });
 
     delete[] lParameters.Params;
 }

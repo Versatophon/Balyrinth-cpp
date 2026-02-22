@@ -131,9 +131,10 @@ private:
 
     SelectableGroup<void*> mShapeGenerators;
     SelectableGroup<ShapeMode> mShapeModes;
-    SelectableGroup<RoomSelectMode> mRoomSelectMode;
-    SelectableGroup<BacktrackMode> mBacktrackModes;
-    SelectableGroup<DirectionChangeMode> mDirectionChangeModes;
+
+    SelectableGroup<RoomSelect> mRoomSelectMode;
+    SelectableGroup<Backtrack> mBacktrackModes;
+    SelectableGroup<ComputeDirection> mComputeDirectionModes;
 
     MazeDrawer* mMazeDrawer = nullptr;
 

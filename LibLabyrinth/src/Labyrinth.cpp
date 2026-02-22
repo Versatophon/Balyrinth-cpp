@@ -41,12 +41,12 @@ struct LabyrinthStepperId
 
 	uint32_t mTotalNodeCount = 0;
 	uint32_t mConnectedNodeCount = 0;
-	//uint32_t mLastConnectedNodeIndex = 0;
 
 	uint32_t mFirstIndex = 0;
 	uint32_t mDirection = 0;
 	uint32_t mFromIndex = 0;
 	uint32_t mLastDirectionChangedIndex = 0;
+	uint32_t mLastDirectionUsed = 0;
 
 	uint32_t mNextDirection = UINT32_MAX;
 
@@ -59,9 +59,11 @@ struct LabyrinthStepperId
 
 	IndexProvider* mIndexProvider = nullptr;
 
-	RoomSelectMode mRoomSelectMode = RoomSelectMode::Last;
-	BacktrackMode mBacktrackMode = BacktrackMode::Stack;
-	DirectionChangeMode mDirectionChangeMode = DirectionChangeMode::Always;
+	GenerationParameters mGenerationParameters;
+
+	//RoomSelectMode mRoomSelectMode = RoomSelectMode::Last;
+	//BacktrackMode mBacktrackMode = BacktrackMode::Stack;
+	//DirectionChangeMode mDirectionChangeMode = DirectionChangeMode::Always;
 	//Algorithm mAlgorithm = Algorithm::WallBreakerBloom;
 
 	~LabyrinthStepperId()
@@ -78,48 +80,30 @@ struct LabyrinthStepperId
 		mTopology = new Topology(pTopology->GetSize());
 	}
 
-	void UpdateAlgorithm(RoomSelectMode pRoomSelectMode, BacktrackMode pBacktrackMode, DirectionChangeMode pDirectionChangeMode)
+	void UpdateAlgorithm(GenerationParameters pGenerationParameters)
 	{
-		mRoomSelectMode = pRoomSelectMode,
-		mBacktrackMode = pBacktrackMode;
-		mDirectionChangeMode = pDirectionChangeMode;
-
-		//mAlgorithm = pAlgorithm;
+		mGenerationParameters = pGenerationParameters;
+		//mRoomSelectMode = pRoomSelectMode,
+		//mBacktrackMode = pBacktrackMode;
+		//mDirectionChangeMode = pDirectionChangeMode;
 
 		delete mIndexProvider;
 		mIndexProvider = nullptr;
-#if USE_STATE_MACHINE
-		switch (mBacktrackMode)
+
+		switch (mGenerationParameters.BacktrackMode)
 		{
-		case BacktrackMode::Queue:
+		case Backtrack::Queue:
 			mIndexProvider = new QueueIndexProvider();
 			break;
 
-		case BacktrackMode::Stack:
+		case Backtrack::Stack:
 			mIndexProvider = new StackIndexProvider();
 			break;
 
-		case BacktrackMode::Random:
+		case Backtrack::Random:
 			mIndexProvider = new RandomIndexProvider();
 			break;
 		}
-#else
-		switch (mBacktrackMode)
-		{
-		case BacktrackMode::Queue:
-			mIndexProvider = new QueueIndexProvider();
-			break;
-
-		case BacktrackMode::Stack:
-			mIndexProvider = new StackIndexProvider();
-			break;
-
-		case BacktrackMode::Bloom:
-		case BacktrackMode::Random:
-			mIndexProvider = new RandomIndexProvider();
-			break;
-		}
-#endif
 
 		if (mIndexProvider != nullptr)
 		{
@@ -134,23 +118,7 @@ struct LabyrinthStepperId
 			mRandGen.SetSeed(*pSeed);
 		}
 
-#if USE_STATE_MACHINE
 		mStepperState = StepperState::ChooseInitialRoom;
-#else
-		mTopology->Clear();
-		mTotalNodeCount = mBaseTopology->GetSize();
-		mConnectedNodeCount = 1;
-		mLastConnectedNodeIndex = mRandGen.GenerateNext() % mTotalNodeCount;
-		mGraphColoration = std::vector<uint8_t>(mTotalNodeCount, NOT_CONNECTED);
-
-		mIndexProvider->Clear();
-		mIndexProvider->InsertIndex(mLastConnectedNodeIndex);
-		mGeneratedEdges.clear();
-
-		mGraphColoration[mLastConnectedNodeIndex] = ALREADY_IN_SET;
-		mFirstIndex = mLastConnectedNodeIndex;
-		Listener->AddFirstNode(mLastConnectedNodeIndex);
-#endif
 	}
 
 	bool ProcessStepperState(uint32_t& pExpectedConnectionCount)
@@ -186,7 +154,6 @@ struct LabyrinthStepperId
 
 			case StepperState::ComputeDirection:
 			{
-				//std::cout << "Direction" << std::endl;
 				const size_t lDirectionCount = mRoomNeighborhood->GetDirectionCount();
 
 				std::vector<uint32_t> lConnectableDirections;
@@ -209,10 +176,38 @@ struct LabyrinthStepperId
 				}
 				else
 				{
-					mNextDirection = lConnectableDirections[mRandGen.GenerateNext() % lConnectableDirections.size()];
+					switch (mGenerationParameters.ComputeDirectionMode)
+					{
+					case ComputeDirection::Any:
+						mNextDirection = lConnectableDirections[mRandGen.GenerateNext() % lConnectableDirections.size()];
+						break;
+					case ComputeDirection::ForceChange:
+						if (lConnectableDirections.size() > 1)
+						{
+							uint32_t lIndex = mRandGen.GenerateNext() % (lConnectableDirections.size() - 1);
+							for (uint32_t lDirection : lConnectableDirections)
+							{
+								if (lDirection != mLastDirectionUsed)
+								{
+									if (lIndex-- == 0)
+									{
+										mNextDirection = lDirection;
+									}
+								}
+							}
+						}
+						else
+						{
+							mNextDirection = lConnectableDirections[0];
+						}
+						break;
+					}
+
+					//mNextDirection = lConnectableDirections[mRandGen.GenerateNext() % lConnectableDirections.size()];
+					mLastDirectionUsed = mNextDirection;
 					//Insert
 
-					if (mRoomSelectMode != RoomSelectMode::Fill)
+					if (mGenerationParameters.RoomSelectMode != RoomSelect::Fill)
 					{
 						mIndexProvider->InsertIndex(mFromIndex);
 					}
@@ -225,7 +220,6 @@ struct LabyrinthStepperId
 				break;
 			case StepperState::WallBreak:
 			{
-				//std::cout << "Wallbreak" << std::endl;
 				uint32_t lNextIndex = mRoomNeighborhood->GetNextNode(mFromIndex, mNextDirection);
 
 				if (lNextIndex == UINT32_MAX)
@@ -241,8 +235,6 @@ struct LabyrinthStepperId
 					Listener->AddEdge(mFromIndex, lNextIndex);
 
 					mGraphColoration[lNextIndex] = ALREADY_IN_SET;
-
-					//mIndexProvider->InsertIndex(lNextIndex);
 
 					mFromIndex = lNextIndex;
 
@@ -264,10 +256,7 @@ struct LabyrinthStepperId
 				break;
 			case StepperState::ChooseNextRoom:
 			{
-				//std::cout << "Next Room" << std::endl;
-				//TODO:
-				//If bloom use previous Index
-				if (mRoomSelectMode == RoomSelectMode::Fill)
+				if (mGenerationParameters.RoomSelectMode == RoomSelect::Fill)
 				{
 					mIndexProvider->InsertIndex(mFromIndex);
 					mFromIndex = mLastDirectionChangedIndex;
@@ -277,7 +266,6 @@ struct LabyrinthStepperId
 			}
 				break;
 			case StepperState::Backtrack:
-				//std::cout << "Backtrack" << std::endl;
 				mFromIndex = mIndexProvider->GetInsertedIndex();
 				mStepperState = StepperState::ComputeDirection;
 				break;
@@ -288,81 +276,9 @@ struct LabyrinthStepperId
 
 	void ProcessStep(uint32_t pConnectionCount)
 	{
-#if USE_STATE_MACHINE
 		while (ProcessStepperState(pConnectionCount))
 		{
-			//ProcessStepperState();
 		}
-
-#else
-		size_t lLastInsertedIndex = SIZE_MAX;
-
-		bool lDoneSomething = false;
-
-		while (mConnectedNodeCount < mTotalNodeCount && pConnectionCount > 0)
-		{
-			lDoneSomething = true;
-			const Node* lNode = mBaseTopology->GetNode(mLastConnectedNodeIndex);
-
-			//Compute Direction
-
-			const size_t lConnectableNodeCount = lNode->NeighborCount();
-			std::vector<uint32_t> lConnectableNodeIndices;
-
-			for (size_t i = 0; i < lConnectableNodeCount; ++i)
-			{
-				uint32_t lNeighborIndex = lNode->GetNeighborIndex(i);
-				if (lNeighborIndex != INVALID_NODE_INDEX)
-				{
-					if (mGraphColoration[lNeighborIndex] == NOT_CONNECTED)
-					{
-						lConnectableNodeIndices.push_back(lNeighborIndex);
-					}
-				}
-			}
-
-			if (lConnectableNodeIndices.empty())
-			{//dead end
-				mLastConnectedNodeIndex = mIndexProvider->GetInsertedIndex();
-			}
-			else
-			{
-				//Permit maximum connection per node, because if node has been poped from the container, it cannot be presented again if not repushed here
-				if (mLastConnectedNodeIndex != lLastInsertedIndex )
-				{
-					mIndexProvider->InsertIndex(mLastConnectedNodeIndex);
-				}
-
-				uint32_t lNeighborIndex = lConnectableNodeIndices[mRandGen.GenerateNext() % lConnectableNodeIndices.size()];
-
-				mTopology->ConnectNodes(mLastConnectedNodeIndex, lNeighborIndex);
-				++mConnectedNodeCount;
-
-				mGeneratedEdges.push_back({ mLastConnectedNodeIndex, lNeighborIndex });
-				Listener->AddEdge(mLastConnectedNodeIndex, lNeighborIndex);
-
-				//if (mAlgorithm != Algorithm::WallBreakerBloom)
-				if (mBacktrackMode != BacktrackMode::Bloom)
-				{
-					mLastConnectedNodeIndex = lNeighborIndex;
-				}
-
-				mIndexProvider->InsertIndex(lNeighborIndex);
-				lLastInsertedIndex = lNeighborIndex;
-
-				mGraphColoration[lNeighborIndex] = ALREADY_IN_SET;
-
-				pConnectionCount--;
-			}
-		}
-
-		if (lDoneSomething && mConnectedNodeCount == mTotalNodeCount)
-		{
-			mTopology->ComputeLongestPath();
-			
-			Listener->UpdaterProcessCompleted(mTopology->GetLongestPathLength(), mTopology->GetLongestPathIndices());
-		}
-#endif
 	}
 
 	void ForceRedraw()
@@ -380,10 +296,10 @@ struct LabyrinthStepperId
 	}
 };
 
-LabyrinthStepper::LabyrinthStepper(RoomSelectMode pRoomSelectMode, BacktrackMode pBacktrackMode, DirectionChangeMode pDirectionChangeMode):
+LabyrinthStepper::LabyrinthStepper(GenerationParameters pGenerationParameters):
 	mId(new LabyrinthStepperId)
 {
-	UpdateAlgorithm(pRoomSelectMode, pBacktrackMode, pDirectionChangeMode);
+	UpdateAlgorithm(pGenerationParameters);
 }
 
 LabyrinthStepper::~LabyrinthStepper()
@@ -401,9 +317,9 @@ void LabyrinthStepper::UpdateTopology(const Topology* pTopology, const RoomNeigh
 	mId->UpdateTopology(pTopology, pRoomNeighborhood);
 }
 
-void LabyrinthStepper::UpdateAlgorithm(RoomSelectMode pRoomSelectMode, BacktrackMode pBacktrackMode, DirectionChangeMode pDirectionChangeMode)
+void LabyrinthStepper::UpdateAlgorithm(GenerationParameters pGenerationParameters)
 {
-	mId->UpdateAlgorithm(pRoomSelectMode, pBacktrackMode, pDirectionChangeMode);
+	mId->UpdateAlgorithm(pGenerationParameters);
 }
 
 void LabyrinthStepper::InitiateGeneration(const Seed* pSeed)

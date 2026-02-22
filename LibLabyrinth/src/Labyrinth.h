@@ -14,28 +14,37 @@ enum class Algorithm
 };
 #endif
 
-enum class RoomSelectMode
+enum class RoomSelect//Maybe one to force choose a node with only one connection to generate corridor maze: the deepest maze ever
 {
 	Last,
 	Fill
 };
 
-enum class BacktrackMode
+enum class Backtrack
 {
 	Stack,
 	Queue,
 	Random,
 };
 
-enum class DirectionChangeMode
+enum class ComputeDirection
 {
-	Always,//Default mode, for each node connected, get a random direction
-	ForceAlways,//Force change direction if this direction is not the only available
-	OnLock,//When it's not possible to dig anymore, creates long corridors
-	OnFixedLength,//When dig fixed count on a specific direction, force change
-	ForceOnFixedLength,
-	OnRandomLength,//Compute a new length when get a wall or reach the length 
-	ForceOnRandomLength,
+	Any,
+	ForceChange,
+	//Always,//Default mode, for each node connected, get a random direction
+	//ForceAlways,//Force change direction if this direction is not the only available
+	//OnLock,//When it's not possible to dig anymore, creates long corridors
+	//OnFixedLength,//When dig fixed count on a specific direction, force change
+	//ForceOnFixedLength,
+	//OnRandomLength,//Compute a new length when get a wall or reach the length 
+	//ForceOnRandomLength,
+};
+
+struct GenerationParameters
+{
+	RoomSelect RoomSelectMode;
+	Backtrack BacktrackMode;
+	ComputeDirection ComputeDirectionMode;
 };
 
 class Topology;
@@ -55,14 +64,14 @@ public:
 class LABYRINTH_API LabyrinthStepper
 {
 public:
-	LabyrinthStepper(RoomSelectMode pRoomSelectMode, BacktrackMode pBacktrackMode, DirectionChangeMode pDirectionChangeMode);
+	LabyrinthStepper(GenerationParameters pGenerationParameters);
 	~LabyrinthStepper();
 
 	void SetUpdateListener(TopologyUpdaterListener* pListener);
 
 	void UpdateTopology(const Topology* pTopology, const RoomNeighborhood* pRoomNeighborhood);
 
-	void UpdateAlgorithm(RoomSelectMode pRoomSelectMode, BacktrackMode pBacktrackMode, DirectionChangeMode pDirectionChangeMode);
+	void UpdateAlgorithm(GenerationParameters pGenerationParameters);
 
 	void InitiateGeneration(const Seed* pSeed = nullptr);
 
