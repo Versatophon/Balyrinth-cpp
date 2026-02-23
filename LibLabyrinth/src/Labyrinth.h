@@ -45,6 +45,8 @@ struct GenerationParameters
 	RoomSelect RoomSelectMode;
 	Backtrack BacktrackMode;
 	ComputeDirection ComputeDirectionMode;
+	int32_t CorridorMinLength;
+	int32_t CorridorMaxLength;
 };
 
 class Topology;

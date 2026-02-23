@@ -47,6 +47,7 @@ struct LabyrinthStepperId
 	uint32_t mFromIndex = 0;
 	uint32_t mLastDirectionChangedIndex = 0;
 	uint32_t mLastDirectionUsed = 0;
+	int32_t mCorridorRemainingSteps = 0;
 
 	uint32_t mNextDirection = UINT32_MAX;
 
@@ -163,6 +164,11 @@ struct LabyrinthStepperId
 					uint32_t lNeighborIndex = mRoomNeighborhood->GetNextNode(mFromIndex, i);
 					if (lNeighborIndex != INVALID_NODE_INDEX)
 					{
+						if (lNeighborIndex > 30000000)
+						{
+							std::cout << "we are in trouble" << std::endl;
+						}
+
 						if (mGraphColoration[lNeighborIndex] == NOT_CONNECTED)
 						{
 							lConnectableDirections.push_back(i);
@@ -207,11 +213,34 @@ struct LabyrinthStepperId
 					mLastDirectionUsed = mNextDirection;
 					//Insert
 
-					if (mGenerationParameters.RoomSelectMode != RoomSelect::Fill)
+					//if (mGenerationParameters.RoomSelectMode != RoomSelect::Fill)
 					{
 						mIndexProvider->InsertIndex(mFromIndex);
 					}
 					mLastDirectionChangedIndex = mFromIndex;
+
+
+					{//compute next corridor length
+						int32_t lCorridorDelta = mGenerationParameters.CorridorMaxLength - mGenerationParameters.CorridorMinLength;
+						int32_t lComputedRandom = 0;
+						int32_t lCorridorLength = 1;
+
+						if (lCorridorDelta > 0)
+						{
+							lComputedRandom = mRandGen.GenerateNext() % (lCorridorDelta+1);
+						}
+						
+						lCorridorLength = mGenerationParameters.CorridorMinLength + lComputedRandom;
+
+						if (lCorridorLength > 0)
+						{
+							mCorridorRemainingSteps = lCorridorLength;
+						}
+						else
+						{
+							mCorridorRemainingSteps = 1;
+						}
+					}
 
 					mStepperState = StepperState::WallBreak;
 				}
@@ -222,7 +251,7 @@ struct LabyrinthStepperId
 			{
 				uint32_t lNextIndex = mRoomNeighborhood->GetNextNode(mFromIndex, mNextDirection);
 
-				if (lNextIndex == UINT32_MAX)
+				if (lNextIndex == UINT32_MAX || mGraphColoration[lNextIndex] == ALREADY_IN_SET)
 				{//unable to connect this way, need to change direction
 					mStepperState = StepperState::ComputeDirection;
 				}
@@ -236,7 +265,8 @@ struct LabyrinthStepperId
 
 					mGraphColoration[lNextIndex] = ALREADY_IN_SET;
 
-					mFromIndex = lNextIndex;
+					mFromIndex = lNextIndex; 
+					mCorridorRemainingSteps--;
 
 					if (mConnectedNodeCount == mTotalNodeCount)
 					{
@@ -245,8 +275,8 @@ struct LabyrinthStepperId
 						Listener->UpdaterProcessCompleted(mTopology->GetLongestPathLength(), mTopology->GetLongestPathIndices());
 						mStepperState = StepperState::Idle;
 					}
-					else
-					{
+					else if (mCorridorRemainingSteps <= 0)
+					{//go to next direction change, if corridor ended
 						mStepperState = StepperState::ChooseNextRoom;
 					}
 
@@ -267,7 +297,15 @@ struct LabyrinthStepperId
 				break;
 			case StepperState::Backtrack:
 				mFromIndex = mIndexProvider->GetInsertedIndex();
-				mStepperState = StepperState::ComputeDirection;
+
+				if (mFromIndex == UINT32_MAX)
+				{
+					mStepperState = StepperState::Idle;
+				}
+				else
+				{
+					mStepperState = StepperState::ComputeDirection;
+				}
 				break;
 		}
 

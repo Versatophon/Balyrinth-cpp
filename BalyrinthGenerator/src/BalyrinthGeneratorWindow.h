@@ -135,6 +135,8 @@ private:
     SelectableGroup<RoomSelect> mRoomSelectMode;
     SelectableGroup<Backtrack> mBacktrackModes;
     SelectableGroup<ComputeDirection> mComputeDirectionModes;
+    int32_t mCorridorMinLength = 1;
+    int32_t mCorridorMaxLength = 1;
 
     MazeDrawer* mMazeDrawer = nullptr;
 

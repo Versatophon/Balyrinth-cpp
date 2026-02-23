@@ -90,6 +90,11 @@ public:
 
 	uint32_t GetNextNode(uint32_t pIndexFrom, uint32_t pDirection) const override
 	{
+		if (pIndexFrom == UINT32_MAX)
+		{
+			return UINT32_MAX;
+		}
+
 		switch (Direction(pDirection))
 		{
 		case Direction::Right:

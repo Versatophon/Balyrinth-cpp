@@ -618,6 +618,8 @@ void BalyrinthGeneratorWindow::ProcessImGui()
             lChanged |= ExecuteCombobox("Room Select", mRoomSelectMode);
             lChanged |= ExecuteCombobox("Backtrack", mBacktrackModes);
             lChanged |= ExecuteCombobox("Compute Direction", mComputeDirectionModes);
+            lChanged |= ImGui::DragInt("Corridor Min Length", &mCorridorMinLength);
+            lChanged |= ImGui::DragInt("Corridor Max Length", &mCorridorMaxLength);
 
             lChanged |= ImGui::DragScalar("Width", ImGuiDataType_::ImGuiDataType_U64, &mMazeGeometryParameters.Width, .2f, &mMin, &mMax);
             lChanged |= ImGui::DragScalar("Height", ImGuiDataType_::ImGuiDataType_U64, &mMazeGeometryParameters.Height, .2f, &mMin, &mMax);
@@ -755,7 +757,7 @@ void BalyrinthGeneratorWindow::InternalUpdateTopology()
 
     mLabyrinthStepper.UpdateTopology(mShapeProvider->GetTopology(), mShapeProvider->GetRoomNeighborhood());
     mCurrentTopology = mLabyrinthStepper.GetTopology();
-    mLabyrinthStepper.UpdateAlgorithm({ mRoomSelectMode.Item(), mBacktrackModes.Item(), mComputeDirectionModes.Item() });
+    mLabyrinthStepper.UpdateAlgorithm({ mRoomSelectMode.Item(), mBacktrackModes.Item(), mComputeDirectionModes.Item(), mCorridorMinLength, mCorridorMaxLength });
 
     delete[] lParameters.Params;
 }
