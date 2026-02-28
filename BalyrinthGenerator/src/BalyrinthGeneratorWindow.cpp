@@ -39,7 +39,7 @@ extern "C" {
 #include "GL/Renderable.h"
 #include "GL/Binder.h"
 
-//TODO: utiliser une table d'indirection contenant les coordonn�es normalis�es de chaque node, avec des g�n�rateurs
+//TODO: utiliser une table d'indirection contenant les coordonnées normalisées de chaque node, avec des générateurs
 //TODO: ajouter une fonctionnalité pour sérialiser les topologies
 //TODO: ajouter une fonctionnalité pour exporter la seed
 
@@ -91,7 +91,6 @@ mLabyrinthStepper(LabyrinthStepper({ RoomSelect::Last, Backtrack::Queue, Compute
 
     {
         mForNodesLut.resize(mMazeGeometryParameters.Height * mMazeGeometryParameters.Width);
-        //mNodesNeighborCount.resize(mMazeGeometryParameters.Height * mMazeGeometryParameters.Width * 6);
         mNodesNeighborCount.resize(mMazeGeometryParameters.Height * mMazeGeometryParameters.Width * mMazeDrawer->GetVertexCountPerNode());
 
         memset(mNodesNeighborCount.data(), 0, mNodesNeighborCount.size());
@@ -166,7 +165,6 @@ void BalyrinthGeneratorWindow::CleanupGeometry()
     mForPathVerticesToUpload.clear();
 
     mForNodesLut.resize(mMazeGeometryParameters.Height * mMazeGeometryParameters.Width);
-    //mNodesNeighborCount.resize(mMazeGeometryParameters.Height * mMazeGeometryParameters.Width * 6);
     mNodesNeighborCount.resize(mMazeGeometryParameters.Height * mMazeGeometryParameters.Width * mMazeDrawer->GetVertexCountPerNode());
 
     memset(mNodesNeighborCount.data(), 0, mNodesNeighborCount.size());
@@ -349,7 +347,6 @@ int32_t BalyrinthGeneratorWindow::Init()
     mMainTransform.SetScale(100.f);
 
     mRenderableLabyrinth->SetItemCount(0);
-    //mRenderableLabyrinth->CurrentPositionInBuffer = 0;
     mVerticesToUpload.clear();
 
     Resize(Vector2i{ (int32_t)GetWidth(), (int32_t)GetHeight() });
@@ -429,7 +426,13 @@ int32_t BalyrinthGeneratorWindow::Event(SDL_Event *pEvent)
 
 int32_t BalyrinthGeneratorWindow::Iterate()
 {
-    mLabyrinthStepper.ProcessStep(mConnectionPerFrame);
+    if (mConnectionPerSecond != 0.)
+    {
+        int32_t lConnectionCountToProcess = mConnectionPerSecond * mElapsedTime;
+        mElapsedTime += GetLastFrameDuration();
+        mElapsedTime -= (lConnectionCountToProcess / mConnectionPerSecond);
+        mLabyrinthStepper.ProcessStep(lConnectionCountToProcess, 0.01f);
+    }
 
     ProcessImGui();
 
@@ -460,7 +463,6 @@ void BalyrinthGeneratorWindow::Render()
         //TODO: use a different shader instead of uploading a color index array
         mRenderableLabyrinth->SetItemCount(lMaxVertexCount);
 
-        //mRenderableNodes->SetItemCount(mMazeGeometryParameters.Height * mMazeGeometryParameters.Width * 6);
         mRenderableNodes->SetItemCount(mMazeGeometryParameters.Height * mMazeGeometryParameters.Width * mMazeDrawer->GetVertexCountPerNode());
 
         mRenderableLongestPath->SetItemCount(0);
@@ -623,7 +625,7 @@ void BalyrinthGeneratorWindow::ProcessImGui()
 
             lChanged |= ImGui::DragScalar("Width", ImGuiDataType_::ImGuiDataType_U64, &mMazeGeometryParameters.Width, .2f, &mMin, &mMax);
             lChanged |= ImGui::DragScalar("Height", ImGuiDataType_::ImGuiDataType_U64, &mMazeGeometryParameters.Height, .2f, &mMin, &mMax);
-            ImGui::DragScalar("C/Frame", ImGuiDataType_::ImGuiDataType_U64, &mConnectionPerFrame, .2f, &mMin, &mMax);
+            ImGui::DragFloat("C/Second", &mConnectionPerSecond, .1f, .1f, 1000000.f);
 
             ImGui::Checkbox("Show Cells", &mRenderCells);
             ImGui::Checkbox("Show Edges", &mRenderEdges);
@@ -720,17 +722,14 @@ void BalyrinthGeneratorWindow::ProcessImGui()
         }
 
         //TODO: create something to permit telemetry here
-        int lVerticesCount =
+        size_t lVerticesCount =
             mRenderableLabyrinth->GetVertexCount() +
             mRenderableNodes->GetVertexCount() +
             mRenderableLongestPath->GetVertexCount();
-            //mRenderableLabyrinth->CurrentPositionInBuffer / (sizeof(float) * 3) +
-            //mRenderableNodes->CurrentPositionInBuffer / (sizeof(float) * 3) +
-            //mRenderableLongestPath->CurrentPositionInBuffer / (sizeof(float) * 3);
 
-        int lTriangleCount = lVerticesCount / 3;
+        size_t lTriangleCount = lVerticesCount / 3;
 
-        int lMemoryUsed = lVerticesCount * sizeof(float) * 3;
+        size_t lMemoryUsed = lVerticesCount * sizeof(float) * 3;
 
         lMemoryUsed /= (1024 * 1024);
 

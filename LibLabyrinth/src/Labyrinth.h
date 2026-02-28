@@ -77,7 +77,7 @@ public:
 
 	void InitiateGeneration(const Seed* pSeed = nullptr);
 
-	void ProcessStep(uint32_t pConnectionCount);
+	void ProcessStep(uint32_t pConnectionCount, float pMaxTime);
 
 	void ForceRedraw();
 

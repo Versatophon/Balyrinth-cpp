@@ -102,6 +102,8 @@ private:
 
     MazeGeometryParameters mMazeGeometryParameters;
 
+    float mElapsedTime = 0.f;
+    float mConnectionPerSecond = 200.f;
     size_t mConnectionPerFrame = 40;
 
     bool mRenderCells = true;

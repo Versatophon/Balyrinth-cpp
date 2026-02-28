@@ -10,6 +10,10 @@
 #include <iostream>
 #include <cstddef>
 
+#include <chrono>
+typedef std::chrono::high_resolution_clock HiResTime;
+typedef HiResTime::time_point TimePoint;
+
 #define NOT_CONNECTED 0
 #define ALREADY_IN_SET 1
 #define NO_MORE_CONNECTION_POSSIBLE 2
@@ -62,11 +66,6 @@ struct LabyrinthStepperId
 
 	GenerationParameters mGenerationParameters;
 
-	//RoomSelectMode mRoomSelectMode = RoomSelectMode::Last;
-	//BacktrackMode mBacktrackMode = BacktrackMode::Stack;
-	//DirectionChangeMode mDirectionChangeMode = DirectionChangeMode::Always;
-	//Algorithm mAlgorithm = Algorithm::WallBreakerBloom;
-
 	~LabyrinthStepperId()
 	{
 		delete mTopology;
@@ -84,9 +83,6 @@ struct LabyrinthStepperId
 	void UpdateAlgorithm(GenerationParameters pGenerationParameters)
 	{
 		mGenerationParameters = pGenerationParameters;
-		//mRoomSelectMode = pRoomSelectMode,
-		//mBacktrackMode = pBacktrackMode;
-		//mDirectionChangeMode = pDirectionChangeMode;
 
 		delete mIndexProvider;
 		mIndexProvider = nullptr;
@@ -124,6 +120,11 @@ struct LabyrinthStepperId
 
 	bool ProcessStepperState(uint32_t& pExpectedConnectionCount)
 	{
+		if (pExpectedConnectionCount == 0)
+		{
+			return false;
+		}
+
 		switch (mStepperState)
 		{
 			case StepperState::Idle:
@@ -164,11 +165,6 @@ struct LabyrinthStepperId
 					uint32_t lNeighborIndex = mRoomNeighborhood->GetNextNode(mFromIndex, i);
 					if (lNeighborIndex != INVALID_NODE_INDEX)
 					{
-						if (lNeighborIndex > 30000000)
-						{
-							std::cout << "we are in trouble" << std::endl;
-						}
-
 						if (mGraphColoration[lNeighborIndex] == NOT_CONNECTED)
 						{
 							lConnectableDirections.push_back(i);
@@ -209,16 +205,11 @@ struct LabyrinthStepperId
 						break;
 					}
 
-					//mNextDirection = lConnectableDirections[mRandGen.GenerateNext() % lConnectableDirections.size()];
 					mLastDirectionUsed = mNextDirection;
 					//Insert
 
-					//if (mGenerationParameters.RoomSelectMode != RoomSelect::Fill)
-					{
-						mIndexProvider->InsertIndex(mFromIndex);
-					}
+					mIndexProvider->InsertIndex(mFromIndex);
 					mLastDirectionChangedIndex = mFromIndex;
-
 
 					{//compute next corridor length
 						int32_t lCorridorDelta = mGenerationParameters.CorridorMaxLength - mGenerationParameters.CorridorMinLength;
@@ -312,10 +303,19 @@ struct LabyrinthStepperId
 		return mStepperState != StepperState::Idle && pExpectedConnectionCount > 0;
 	}
 
-	void ProcessStep(uint32_t pConnectionCount)
+	void ProcessStep(uint32_t pConnectionCount, float pMaxTime)
 	{
+		TimePoint lStartTime = HiResTime::now();
+		
 		while (ProcessStepperState(pConnectionCount))
 		{
+			TimePoint lEndTime = HiResTime::now();
+			float lExecutionTime = std::chrono::duration_cast<std::chrono::duration<float>>(lEndTime - lStartTime).count();
+
+			if (lExecutionTime > pMaxTime)
+			{
+				return;
+			}
 		}
 	}
 
@@ -365,9 +365,9 @@ void LabyrinthStepper::InitiateGeneration(const Seed* pSeed)
 	mId->InitGeneration(pSeed);
 }
 
-void LabyrinthStepper::ProcessStep(uint32_t pConnectionCount)
+void LabyrinthStepper::ProcessStep(uint32_t pConnectionCount, float pMaxTime)
 {
-	mId->ProcessStep(pConnectionCount);
+	mId->ProcessStep(pConnectionCount, pMaxTime);
 }
 
 void LabyrinthStepper::ForceRedraw()
