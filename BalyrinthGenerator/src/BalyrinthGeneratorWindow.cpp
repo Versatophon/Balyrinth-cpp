@@ -548,14 +548,6 @@ void BalyrinthGeneratorWindow::Render()
     mModelsUbo->UpdateGpu();
     mColorsUbo->UpdateGpu();
 
-#if 0
-    {
-        Binder lShaderBinder(*mLabyrinthShader);
-        mLabyrinthShader->UpdateUniform("model_index", 0);
-        mCubeMesh->Render();
-    }
-#endif
-
     {
         //Mémoire pour un Node: 6 * (3 * 4 + 1) = 78 octets 
         //Mémoire avec liste: 4 * (3 * 4 + 1) + 6 * 2 = 64 octets 
@@ -574,6 +566,12 @@ void BalyrinthGeneratorWindow::Render()
     if (mRenderPath)
     {
         RenderItem(mPathShader, mRenderableLongestPath);
+    }
+
+    if (mShowWireCube)
+    {
+        Binder lShaderBinder(*mNodeShader);
+        mCubeMesh->Render();
     }
 
     glDisable(GL_BLEND);
@@ -610,25 +608,29 @@ void BalyrinthGeneratorWindow::ProcessImGui()
             bool lDrawParamChanged = false;
             bool lUpdateMazeDrawerParameters = false;
 
-            lUpdateMazeDrawerParameters |= ExecuteCombobox("Shape Mode", mShapeModes);
-            lUpdateMazeDrawerParameters |= ExecuteCombobox("Node Shape", mNodeShapeModes);
-            if (lUpdateMazeDrawerParameters)
-            {//HACK
-                //mMazeGeometryParameters.ViewOffset = { 0, 0 };
-                //mLabyrinthStepper.SetUpdateListener(mShapeDrawModes.Item());
-                mMazeDrawer->SetParameters({mShapeModes.Item(), mNodeShapeModes.Item()});
-                lDrawParamChanged = true;
+            if (ImGui::CollapsingHeader("Maze Drawer"))
+            {
+                lUpdateMazeDrawerParameters |= ExecuteCombobox("Shape Mode", mShapeModes);
+                lUpdateMazeDrawerParameters |= ExecuteCombobox("Node Shape", mNodeShapeModes);
+                if (lUpdateMazeDrawerParameters)
+                {//HACK
+                    //mMazeGeometryParameters.ViewOffset = { 0, 0 };
+                    //mLabyrinthStepper.SetUpdateListener(mShapeDrawModes.Item());
+                    mMazeDrawer->SetParameters({ mShapeModes.Item(), mNodeShapeModes.Item() });
+                    lDrawParamChanged = true;
+                }
             }
-
-            ;
 
             lChanged |= ExecuteCombobox("Shape", mShapeGenerators);
 
-            lChanged |= ExecuteCombobox("Room Select", mRoomSelectMode);
-            lChanged |= ExecuteCombobox("Backtrack", mBacktrackModes);
-            lChanged |= ExecuteCombobox("Compute Direction", mComputeDirectionModes);
-            lChanged |= ImGui::DragInt("Corridor Min Length", &mCorridorMinLength);
-            lChanged |= ImGui::DragInt("Corridor Max Length", &mCorridorMaxLength);
+            if (ImGui::CollapsingHeader("Generation Parameters"))
+            {
+                lChanged |= ExecuteCombobox("Room Select", mRoomSelectMode);
+                lChanged |= ExecuteCombobox("Backtrack", mBacktrackModes);
+                lChanged |= ExecuteCombobox("Compute Direction", mComputeDirectionModes);
+                lChanged |= ImGui::DragInt("Corridor Min Length", &mCorridorMinLength);
+                lChanged |= ImGui::DragInt("Corridor Max Length", &mCorridorMaxLength);
+            }
 
             lChanged |= ImGui::DragScalar("Width", ImGuiDataType_::ImGuiDataType_U64, &mMazeGeometryParameters.Width, .2f, &mMin, &mMax);
             lChanged |= ImGui::DragScalar("Height", ImGuiDataType_::ImGuiDataType_U64, &mMazeGeometryParameters.Height, .2f, &mMin, &mMax);
@@ -641,16 +643,19 @@ void BalyrinthGeneratorWindow::ProcessImGui()
             lDrawParamChanged |= ImGui::DragFloat("Point Width", &mMazeGeometryParameters.PointWidth, 0.005f, .005f, 1.1f);
             lDrawParamChanged |= ImGui::DragFloat("Line Width", &mMazeGeometryParameters.LineWidth, 0.005f, .005f, 1.1f);
 
-            ImGui::ColorEdit4("Background Color", (&mBackgroundColor.R));
-            ImGui::ColorEdit4("Lines Color", (&mColors[0].R));
-
-            for (size_t i = 1; i < 5; ++i)
+            if (ImGui::CollapsingHeader("Colors"))
             {
-                std::string lNumber = std::to_string(i);
+                ImGui::ColorEdit4("Background Color", (&mBackgroundColor.R));
+                ImGui::ColorEdit4("Lines Color", (&mColors[0].R));
 
-                ImGui::ColorEdit4(("Node Color " + lNumber).c_str(), (&mColors[i].R));
+                for (size_t i = 1; i < 5; ++i)
+                {
+                    std::string lNumber = std::to_string(i);
+
+                    ImGui::ColorEdit4(("Node Color " + lNumber).c_str(), (&mColors[i].R));
+                }
+                ImGui::ColorEdit4("Path Color", (&mColors[5].R));
             }
-            ImGui::ColorEdit4("Path Color", (&mColors[5].R));
 
             ImGui::Checkbox("Show neighbors", &mShowNeighbors);
 
@@ -691,27 +696,32 @@ void BalyrinthGeneratorWindow::ProcessImGui()
         //GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX;
 
 #if 1// debug matrices
-        for (size_t i = 0; i < 8; ++i)
+        if (ImGui::CollapsingHeader("3D"))
         {
-            std::string lNumber = std::to_string(i);
+            ImGui::Checkbox("Show Cube", &mShowWireCube);
 
-            ImGui::ColorEdit4(("Vertex Color " + lNumber).c_str(), (&mColors[6+i].R));
+            for (size_t i = 0; i < 8; ++i)
+            {
+                std::string lNumber = std::to_string(i);
+
+                ImGui::ColorEdit4(("Vertex Color " + lNumber).c_str(), (&mColors[6 + i].R));
+            }
+
+            mQuaternion = mMainTransform.GetOrientation();
+
+            if (ImGui::DragFloat4("Quat", &mQuaternion.X, 0.001f))
+            {
+                mQuaternion = mQuaternion.Normalized();
+                mMainTransform.SetOrientation(mQuaternion);
+            }
+
+            Matrix4f lMatrix = mMainTransform.GetMatrix();
+
+            ImGui::DragFloat4("##Mat0", lMatrix[0].Array(), 0.001f);
+            ImGui::DragFloat4("##Mat1", lMatrix[1].Array(), 0.001f);
+            ImGui::DragFloat4("##Mat2", lMatrix[2].Array(), 0.001f);
+            ImGui::DragFloat4("##Mat3", lMatrix[3].Array(), 0.001f);
         }
-
-        mQuaternion = mMainTransform.GetOrientation();
-
-        if (ImGui::DragFloat4("Quat", &mQuaternion.X, 0.001f))
-        {
-            mQuaternion = mQuaternion.Normalized();
-            mMainTransform.SetOrientation(mQuaternion);
-        }
-
-        Matrix4f lMatrix = mMainTransform.GetMatrix();
-
-        ImGui::DragFloat4("##Mat0", lMatrix[0].Array(), 0.001f);
-        ImGui::DragFloat4("##Mat1", lMatrix[1].Array(), 0.001f);
-        ImGui::DragFloat4("##Mat2", lMatrix[2].Array(), 0.001f);
-        ImGui::DragFloat4("##Mat3", lMatrix[3].Array(), 0.001f);
 #endif
 
         ImGui::End();

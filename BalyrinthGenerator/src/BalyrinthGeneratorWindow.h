@@ -178,6 +178,7 @@ private:
 
     // Cube For tests
     RenderableMesh* mCubeMesh = nullptr;
+    bool mShowWireCube = false;
 
     //neighbors stuff
     bool mShowNeighbors = false;
