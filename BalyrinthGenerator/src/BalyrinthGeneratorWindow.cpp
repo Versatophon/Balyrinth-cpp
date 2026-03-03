@@ -607,8 +607,6 @@ void BalyrinthGeneratorWindow::ProcessImGui()
         {
             bool lChanged = false;
 
-            ImGui::Text("%f fps.", ImGui::GetIO().Framerate);
-
             bool lDrawParamChanged = false;
             bool lUpdateMazeDrawerParameters = false;
 
@@ -745,6 +743,9 @@ void BalyrinthGeneratorWindow::ProcessImGui()
         ImGui::Text("%i vertices / %i triangles", lVerticesCount, lTriangleCount);
 
         ImGui::Text("Graphics Memory used: %i MB", lMemoryUsed);
+
+        ImGui::Text("%.1f fps.", ImGui::GetIO().Framerate);
+
         ImGui::End();
     }
 }
