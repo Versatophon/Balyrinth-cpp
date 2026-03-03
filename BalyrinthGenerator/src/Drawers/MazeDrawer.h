@@ -4,8 +4,15 @@
 #include <Labyrinth.h>
 
 #include "ShapeMode.h"
+#include "NodeShape.h"
 
 #include "GeometryContainer.h"
+
+struct MazeDrawerParameters
+{
+    ShapeMode Mode;
+    NodeShape ShapeOfNode;
+};
 
 class NodeShapeProvider;
 
@@ -15,9 +22,9 @@ typedef void (MazeDrawer::* DrawRectangleFunc)(const Vector3f& pMin, const Vecto
 class MazeDrawer:public TopologyUpdaterListener
 {
 public:
-    MazeDrawer(GeometryContainer& pGeometryContainer, ShapeMode pShapeMode);
+    MazeDrawer(GeometryContainer& pGeometryContainer, MazeDrawerParameters pParameters);
 
-    void SetShapeMode(ShapeMode pShapeMode);
+    void SetParameters(MazeDrawerParameters pParameters);
 
     size_t GetVertexCountPerNode() const;
 
@@ -49,7 +56,8 @@ protected:
 
     //size_t mVertexCountPerNode = 12;
 
-    ShapeMode mShapeMode;
+    //ShapeMode mShapeMode;
+    MazeDrawerParameters mParameters;
 
     NodeShapeProvider* mNodeShapeProvider = nullptr;
 

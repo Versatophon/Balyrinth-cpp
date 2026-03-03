@@ -100,7 +100,7 @@ private:
 };
 #endif
 
-MazeDrawer::MazeDrawer(GeometryContainer& pGeometryContainer, ShapeMode pShapeMode) :
+MazeDrawer::MazeDrawer(GeometryContainer& pGeometryContainer, MazeDrawerParameters pParameters) :
     mGeometryContainer(pGeometryContainer),
     mNodePositions(mGeometryContainer.GetNodePositions()),
     mMazeGeometryParameters(mGeometryContainer.GetMazeGeometryParameters()),
@@ -108,16 +108,27 @@ MazeDrawer::MazeDrawer(GeometryContainer& pGeometryContainer, ShapeMode pShapeMo
     mForNodesVerticesToAdd(mGeometryContainer.GetForNodesVerticesToAdd()),
     mForNodesLut(mGeometryContainer.GetForNodesLut()),
     mForNodesCount(mGeometryContainer.GetForNodesCount()),
-    mForPathVerticesToAdd(mGeometryContainer.GetForPathVerticesToAdd()),
-    mShapeMode(pShapeMode),
-    //mNodeShapeProvider(new SquareNodeShapeProvider())
-    mNodeShapeProvider(new HexagonNodeShapeProvider())
+    mForPathVerticesToAdd(mGeometryContainer.GetForPathVerticesToAdd())
 {
+    SetParameters(pParameters);
 }
 
-void MazeDrawer::SetShapeMode(ShapeMode pShapeMode)
+void MazeDrawer::SetParameters(MazeDrawerParameters pParameters)
 {
-    mShapeMode = pShapeMode;
+    mParameters = pParameters;
+    delete mNodeShapeProvider;
+    mNodeShapeProvider = nullptr;
+
+    switch (mParameters.ShapeOfNode)
+    {
+    case NodeShape::Square:
+        mNodeShapeProvider = new SquareNodeShapeProvider();
+        break;
+
+    case NodeShape::Hexagon:
+        mNodeShapeProvider = new HexagonNodeShapeProvider();
+        break;
+    }
 }
 
 size_t MazeDrawer::GetVertexCountPerNode() const
@@ -189,7 +200,7 @@ void MazeDrawer::DrawNode(uint32_t pIndex, bool pInit)
 
 void MazeDrawer::DrawEdge(std::vector<float>& pContainer, uint32_t pNodeIndex0, uint32_t pNodeIndex1, float pDepth)
 {
-    switch (mShapeMode)
+    switch (mParameters.Mode)
     {
     case ShapeMode::Contiguous:
     {

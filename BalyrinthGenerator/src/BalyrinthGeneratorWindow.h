@@ -23,6 +23,7 @@ extern "C" {
 #include "Drawers/GeometryContainer.h"
 #include "Drawing/Color.h"
 #include "Drawers/MazeGeometyParameters.h"
+#include "Drawers/NodeShape.h"
 #include "Drawers/ShapeMode.h"
 
 #include "Graphics/GraphicsState.h"
@@ -133,6 +134,7 @@ private:
 
     SelectableGroup<void*> mShapeGenerators;
     SelectableGroup<ShapeMode> mShapeModes;
+    SelectableGroup<NodeShape> mNodeShapeModes;
 
     SelectableGroup<RoomSelect> mRoomSelectMode;
     SelectableGroup<Backtrack> mBacktrackModes;

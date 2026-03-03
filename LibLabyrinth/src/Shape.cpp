@@ -3,6 +3,7 @@
 #include "Topology.h"
 #include "RoomNeighborhood.h"
 
+#include <Vector2i.h>
 #include <Vector3f.h>
 
 #include <string>
@@ -438,6 +439,38 @@ Shape* GenerateSquaresOnToreShape(Parameters& pParameters)
 }
 
 #if 0
+//    1,3 -> 3,3 -> 5,3 -> 7,3 -> 9,3 -> 11,3 -> 13,3
+// 0,2 -> 2,2 -> 4,2 -> 6,2 -> 8,2 -> 10,2 -> 12, 2
+//    1,1 -> 3,1 -> 5,1 -> 7,1 -> 9,1 -> 11,1 -> 13,1
+// 0,0 -> 2,0 -> 4,0 -> 6,0 -> 8,0 -> 10,0 -> 12, 
+
+
+Vector2i ToHexagonalCoordinates(const Vector2i pInArrayRectangular)
+{
+	return Vector2i(
+		(pInArrayRectangular.X * 2) + (pInArrayRectangular.Y % 2), 
+		pInArrayRectangular.Y);
+}
+
+Vector2i HexagonalToArrayCoordinates(const Vector2i pHexagonal)
+{
+	return Vector2i(
+		pHexagonal.X / 2,
+		pHexagonal.Y);
+}
+
+int32_t ToRoomIndex(const Vector2i pRectangularSize, const Vector2i pInArrayRectangular)
+{
+	return pInArrayRectangular.Y * pRectangularSize.Width + pInArrayRectangular.X;
+}
+
+Vector2i IndexToArrayCoordinatres(const Vector2i pRectangularSize, int32_t pIndex)
+{
+	return Vector2i(
+		pIndex % pRectangularSize.Width,
+		pIndex / pRectangularSize.Width);
+}
+
 class HexagonRoomsOnRectangularSpace : public Shape
 {
 public:
@@ -450,10 +483,26 @@ public:
 		mRoomType = RoomType::Hexagonal;
 		mTopology = new Topology(pWidth * pHeight);
 
+		Vector2i lSize{ pWidth, pHeight };
+
 		for (size_t j = 0; j < pHeight; ++j)
 		{
 			for (size_t i = 0; i < pWidth; ++i)
 			{
+				Vector2i lInArrayCoordinates{ i,j };
+				Vector2i lHexagonalCoordinates = ToHexagonalCoordinates(lInArrayCoordinates);
+
+				Vector2i lHexaRoom0{ lHexagonalCoordinates.X+2, lHexagonalCoordinates.Y };
+				Vector2i lHexaRoom1{ lHexagonalCoordinates.X+1, lHexagonalCoordinates.Y+1 };
+				Vector2i lHexaRoom2{ lHexagonalCoordinates.X-1, lHexagonalCoordinates.Y+1 };
+				Vector2i lHexaRoom3{ lHexagonalCoordinates.X-2, lHexagonalCoordinates.Y };
+				Vector2i lHexaRoom4{ lHexagonalCoordinates.X-1, lHexagonalCoordinates.Y-1 };
+				Vector2i lHexaRoom5{ lHexagonalCoordinates.X+1, lHexagonalCoordinates.Y-1 };
+
+				dukuhds
+
+				int32_t lRoomIndex = ToRoomIndex(lSize, lInArrayCoordinates);
+
 				size_t lRoomIndex = j * pWidth + i;
 				if (i < pWidth - 1)
 				{
@@ -471,11 +520,6 @@ public:
 	~HexagonRoomsOnRectangularSpace()
 	{
 		delete mTopology;
-	}
-
-	Topology* GetTopology() override
-	{
-		return mTopology;
 	}
 
 	Vector3f GetNodeNormalizedPosition(uint32_t pIndex) override
@@ -498,9 +542,34 @@ private:
 	uint32_t mHeight = 10;
 };
 
-#endif
 
 Shape* GenerateHexagonsOnRectShape(Parameters& pParameters)
 {
-	return nullptr;
+	if (pParameters.Count == 0)
+	{
+		pParameters.Count = 2;
+		pParameters.Params = new Parameter[2];
+		strcpy(pParameters.Params[0].Name, "Width");
+		pParameters.Params[0].ValueAsInteger32 = 10;
+		strcpy(pParameters.Params[1].Name, "Height");
+		pParameters.Params[1].ValueAsInteger32 = 10;
+		return nullptr;
+	}
+
+	uint32_t lWitdh = 10;
+	uint32_t lHeight = 10;
+
+	for (size_t i = 0; i < pParameters.Count; ++i)
+	{
+		if (std::string("Width") == pParameters.Params[i].Name) lWitdh = pParameters.Params[i].ValueAsInteger32;
+		if (std::string("Height") == pParameters.Params[i].Name) lHeight = pParameters.Params[i].ValueAsInteger32;
+	}
+
+	if (lHeight % 2 != 0)
+	{
+		lHeight += 1;
+	}
+
+	return new HexagonRoomsOnRectangularSpace(lWitdh, lHeight);
 }
+#endif

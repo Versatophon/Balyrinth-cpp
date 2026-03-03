@@ -75,6 +75,7 @@ set(ProjectSrcs
     src/Graphics/GraphicsState.h
     src/Graphics/GraphicsState.cpp
     src/Drawers/GeometryContainer.h
+    src/Drawers/NodeShape.h
     src/Drawers/ShapeMode.h
     src/Drawers/MazeDrawer.h
     src/Drawers/MazeDrawer.cpp

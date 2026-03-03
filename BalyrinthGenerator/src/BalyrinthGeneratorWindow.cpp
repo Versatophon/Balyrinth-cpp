@@ -75,6 +75,9 @@ mLabyrinthStepper(LabyrinthStepper({ RoomSelect::Last, Backtrack::Queue, Compute
     mShapeModes = {{{"Shape", ShapeMode::Shape},
                     {"Contiguous", ShapeMode::Contiguous}}};
 
+    mNodeShapeModes = {{{"Square", NodeShape::Square},
+                        {"Hexagon", NodeShape::Hexagon}}};
+
     mRoomSelectMode = {{{"Last Room Added", RoomSelect::Last},
                         {"Fill Room", RoomSelect::Fill}} };
 
@@ -85,7 +88,7 @@ mLabyrinthStepper(LabyrinthStepper({ RoomSelect::Last, Backtrack::Queue, Compute
     mComputeDirectionModes = {{{"Any", ComputeDirection::Any},
                                {"Force Change", ComputeDirection::ForceChange}}};
 
-    mMazeDrawer = new MazeDrawer(*this, mShapeModes.Item());
+    mMazeDrawer = new MazeDrawer(*this, {mShapeModes.Item(), mNodeShapeModes.Item()});
 
     mLabyrinthStepper.SetUpdateListener(mMazeDrawer);
 
@@ -607,13 +610,19 @@ void BalyrinthGeneratorWindow::ProcessImGui()
             ImGui::Text("%f fps.", ImGui::GetIO().Framerate);
 
             bool lDrawParamChanged = false;
-            if (ExecuteCombobox("Shape Mode", mShapeModes))
+            bool lUpdateMazeDrawerParameters = false;
+
+            lUpdateMazeDrawerParameters |= ExecuteCombobox("Shape Mode", mShapeModes);
+            lUpdateMazeDrawerParameters |= ExecuteCombobox("Node Shape", mNodeShapeModes);
+            if (lUpdateMazeDrawerParameters)
             {//HACK
                 //mMazeGeometryParameters.ViewOffset = { 0, 0 };
                 //mLabyrinthStepper.SetUpdateListener(mShapeDrawModes.Item());
-                mMazeDrawer->SetShapeMode(mShapeModes.Item());
+                mMazeDrawer->SetParameters({mShapeModes.Item(), mNodeShapeModes.Item()});
                 lDrawParamChanged = true;
             }
+
+            ;
 
             lChanged |= ExecuteCombobox("Shape", mShapeGenerators);
 
