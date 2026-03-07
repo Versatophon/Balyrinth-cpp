@@ -2,6 +2,10 @@
 
 enum class NodeShape
 {
+    Triangle,
     Square,
-    Hexagon
+    Pentagon,
+    Hexagon,
+    Heptagon,
+    Octogon,
 };

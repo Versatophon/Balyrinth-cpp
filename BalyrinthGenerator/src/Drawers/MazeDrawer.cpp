@@ -25,7 +25,7 @@ public:
         return mVertexCountPerNode;
     }
 
-    virtual void DrawNode(std::vector<float>& pContainer, const Vector2f& pNodePosition, const MazeGeometryParameters& pMazeGeometryParameters) = 0;
+    virtual void DrawNode(std::vector<float>& pContainer, const Vector2f& pNodePosition, const MazeGeometryParameters& pMazeGeometryParameters, bool pEvenRow) = 0;
 
 
 protected:
@@ -45,7 +45,53 @@ void AddAARect(std::vector<float>& pContainer, const Vector3f& pMin, const Vecto
 //TODO::Add Grid on which you handle a topology 
 
 #if 1
-class SquareNodeShapeProvider :public NodeShapeProvider
+class InvalidNodeShapeProvider:public NodeShapeProvider
+{
+public:
+    InvalidNodeShapeProvider()
+    {
+        mVertexCountPerNode = 0;
+    }
+
+    void DrawNode(std::vector<float>& pContainer, const Vector2f& pNodePosition, const MazeGeometryParameters& pMazeGeometryParameters, bool pEvenRow) override
+    {
+    }
+};
+
+class TriangleNodeShapeProvider:public NodeShapeProvider
+{
+public:
+    TriangleNodeShapeProvider()
+    {
+        mVertexCountPerNode = 3;
+    }
+
+    void DrawNode(std::vector<float>& pContainer, const Vector2f& pNodePosition, const MazeGeometryParameters& pMazeGeometryParameters, bool pEvenRow) override
+    {
+        Vector3f lPosition{ pNodePosition.X, pNodePosition.Y, -2 * DEBUG_MULT };
+
+        AddTriangle(pContainer, lPosition, pMazeGeometryParameters.PointWidth / 2, pEvenRow);
+    }
+
+private:
+    void AddTriangle(std::vector<float>& pContainer, const Vector3f& pCenter, const float pRadius, bool pEvenRow)
+    {
+        if (pEvenRow)
+        {
+            pContainer.push_back(pCenter.X + pRadius * P1.X); pContainer.push_back(pCenter.Y + pRadius * P1.Y); pContainer.push_back(pCenter.Z);
+            pContainer.push_back(pCenter.X + pRadius * P3.X); pContainer.push_back(pCenter.Y + pRadius * P3.Y); pContainer.push_back(pCenter.Z);
+            pContainer.push_back(pCenter.X + pRadius * P5.X); pContainer.push_back(pCenter.Y + pRadius * P5.Y); pContainer.push_back(pCenter.Z);
+        }
+        else
+        {
+            pContainer.push_back(pCenter.X + pRadius * P0.X); pContainer.push_back(pCenter.Y + pRadius * P0.Y); pContainer.push_back(pCenter.Z);
+            pContainer.push_back(pCenter.X + pRadius * P2.X); pContainer.push_back(pCenter.Y + pRadius * P2.Y); pContainer.push_back(pCenter.Z);
+            pContainer.push_back(pCenter.X + pRadius * P4.X); pContainer.push_back(pCenter.Y + pRadius * P4.Y); pContainer.push_back(pCenter.Z);
+        }
+    }
+};
+
+class SquareNodeShapeProvider:public NodeShapeProvider
 {
 public:
     SquareNodeShapeProvider()
@@ -53,7 +99,7 @@ public:
         mVertexCountPerNode = 6;
     }
 
-    void DrawNode(std::vector<float>& pContainer, const Vector2f& pNodePosition, const MazeGeometryParameters& pMazeGeometryParameters) override
+    void DrawNode(std::vector<float>& pContainer, const Vector2f& pNodePosition, const MazeGeometryParameters& pMazeGeometryParameters, bool pEvenRow) override
     {
         Vector3f lMin{ pNodePosition.X - pMazeGeometryParameters.PointWidth / 2, pNodePosition.Y - pMazeGeometryParameters.PointWidth / 2, -2 * DEBUG_MULT };
         Vector3f lMax{ pNodePosition.X + pMazeGeometryParameters.PointWidth / 2, pNodePosition.Y + pMazeGeometryParameters.PointWidth / 2, -2 * DEBUG_MULT };
@@ -63,7 +109,7 @@ public:
 private:
 };
 
-class HexagonNodeShapeProvider :public NodeShapeProvider
+class HexagonNodeShapeProvider:public NodeShapeProvider
 {
 public:
     HexagonNodeShapeProvider()
@@ -71,7 +117,7 @@ public:
         mVertexCountPerNode = 12;
     }
 
-    void DrawNode(std::vector<float>& pContainer, const Vector2f& pNodePosition, const MazeGeometryParameters& pMazeGeometryParameters) override
+    void DrawNode(std::vector<float>& pContainer, const Vector2f& pNodePosition, const MazeGeometryParameters& pMazeGeometryParameters, bool pEvenRow) override
     {
         Vector3f lPosition{ pNodePosition.X, pNodePosition.Y, -2 * DEBUG_MULT };
         //Vector3f lMax{ pNodePosition.X + pMazeGeometryParameters.PointWidth / 2, pNodePosition.Y + pMazeGeometryParameters.PointWidth / 2, -2 * DEBUG_MULT };
@@ -121,12 +167,20 @@ void MazeDrawer::SetParameters(MazeDrawerParameters pParameters)
 
     switch (mParameters.ShapeOfNode)
     {
+    case NodeShape::Triangle:
+        mNodeShapeProvider = new TriangleNodeShapeProvider();
+        break;
+        
     case NodeShape::Square:
         mNodeShapeProvider = new SquareNodeShapeProvider();
         break;
 
     case NodeShape::Hexagon:
         mNodeShapeProvider = new HexagonNodeShapeProvider();
+        break;
+
+    default :
+        mNodeShapeProvider = new InvalidNodeShapeProvider();
         break;
     }
 }
@@ -195,7 +249,9 @@ void MazeDrawer::DrawNode(uint32_t pIndex, bool pInit)
 
     const Vector2f& lNodePosition = mNodePositions[pIndex];
     mForNodesLut[pIndex] = mLastLutIndex++;
-    mNodeShapeProvider->DrawNode(mForNodesVerticesToAdd, lNodePosition, mMazeGeometryParameters);
+
+    bool lIsEvenRow = ((pIndex / mMazeGeometryParameters.Width) % 2 == 0);
+    mNodeShapeProvider->DrawNode(mForNodesVerticesToAdd, lNodePosition, mMazeGeometryParameters, lIsEvenRow);
 }
 
 void MazeDrawer::DrawEdge(std::vector<float>& pContainer, uint32_t pNodeIndex0, uint32_t pNodeIndex1, float pDepth)

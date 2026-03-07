@@ -75,8 +75,14 @@ mLabyrinthStepper(LabyrinthStepper({ RoomSelect::Last, Backtrack::Queue, Compute
     mShapeModes = {{{"Shape", ShapeMode::Shape},
                     {"Contiguous", ShapeMode::Contiguous}}};
 
-    mNodeShapeModes = {{{"Square", NodeShape::Square},
-                        {"Hexagon", NodeShape::Hexagon}}};
+    mNodeShapeModes = {{{"Triangle", NodeShape::Triangle},
+                        {"Square", NodeShape::Square},
+                        {"Pentagon", NodeShape::Pentagon},
+                        {"Hexagon", NodeShape::Hexagon},
+                        {"Heptagon", NodeShape::Heptagon},
+                        {"Octogon", NodeShape::Octogon}}};
+
+    mNodeShapeModes.mSelectedIndex = 1;
 
     mRoomSelectMode = {{{"Last Room Added", RoomSelect::Last},
                         {"Fill Room", RoomSelect::Fill}} };
