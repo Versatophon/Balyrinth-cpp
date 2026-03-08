@@ -70,10 +70,11 @@ mLabyrinthStepper(LabyrinthStepper({ RoomSelect::Last, Backtrack::Queue, Compute
     mViewport(new Viewport)
 {
     mShapeGenerators = {{{"Squares On Tore", (void*)GenerateSquaresOnToreShape},
-                         {"Squares On Rect", (void*)GenerateSquaresOnRectShape}}};
+                         {"Squares On Rect", (void*)GenerateSquaresOnRectShape},
+                         {"Hexagons On Rect", (void*)GenerateHexagonsOnRectShape}}};
 
-    mShapeModes = {{{"Shape", ShapeMode::Shape},
-                    {"Contiguous", ShapeMode::Contiguous}}};
+    //mShapeModes = {{{"Shape", ShapeMode::Shape},
+    //                {"Contiguous", ShapeMode::Contiguous}}};
 
     mNodeShapeModes = {{{"Triangle", NodeShape::Triangle},
                         {"Square", NodeShape::Square},
@@ -94,7 +95,7 @@ mLabyrinthStepper(LabyrinthStepper({ RoomSelect::Last, Backtrack::Queue, Compute
     mComputeDirectionModes = {{{"Any", ComputeDirection::Any},
                                {"Force Change", ComputeDirection::ForceChange}}};
 
-    mMazeDrawer = new MazeDrawer(*this, {mShapeModes.Item(), mNodeShapeModes.Item()});
+    mMazeDrawer = new MazeDrawer(*this, {/*mShapeModes.Item()*/mContiguousDraw, mNodeShapeModes.Item()});
 
     mLabyrinthStepper.SetUpdateListener(mMazeDrawer);
 
@@ -130,7 +131,7 @@ Shape* BalyrinthGeneratorWindow::GetShape()
     return mShapeProvider;
 }
 
-std::vector<Vector2f>& BalyrinthGeneratorWindow::GetNodePositions()
+std::vector<Vector3f>& BalyrinthGeneratorWindow::GetNodePositions()
 {
     return mNodePositions;
 }
@@ -191,7 +192,7 @@ int32_t BalyrinthGeneratorWindow::Init()
     mModelsUbo = new Ubo(sizeof(Matrix4f) * 256, "models");
     mModels = (Matrix4f*)mModelsUbo->GetMemory();
 
-    mColorsUbo = new Ubo(sizeof(Color) * 14, "colors");
+    mColorsUbo = new Ubo(sizeof(Color) * 18, "colors");
     mColors = (Color*)mColorsUbo->GetMemory();
 
     if (!LoadColorConfiguration())
@@ -201,16 +202,20 @@ int32_t BalyrinthGeneratorWindow::Init()
         mColors[2] = { 0, float(0xAA) / float(0xFF), 0, float(0xFF) / float(0xFF) };
         mColors[3] = { 0, float(0xFF) / float(0xFF), 0, float(0xFF) / float(0xFF) };
         mColors[4] = { float(0xFF) / float(0xFF), 0, 0, float(0xFF) / float(0xFF) };
-        mColors[5] = { float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF) };
-        
-        mColors[6] = { float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF) };
-        mColors[7] = { float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF) };
-        mColors[8] = { float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF) };
+        mColors[5] = { float(0xFF) / float(0xFF), 0, 0, float(0xFF) / float(0xFF) };
+        mColors[6] = { float(0xFF) / float(0xFF), 0, 0, float(0xFF) / float(0xFF) };
+        mColors[7] = { float(0xFF) / float(0xFF), 0, 0, float(0xFF) / float(0xFF) };
+        mColors[8] = { float(0xFF) / float(0xFF), 0, 0, float(0xFF) / float(0xFF) };
         mColors[9] = { float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF) };
+        
         mColors[10] = { float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF) };
         mColors[11] = { float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF) };
         mColors[12] = { float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF) };
         mColors[13] = { float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF) };
+        mColors[14] = { float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF) };
+        mColors[15] = { float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF) };
+        mColors[16] = { float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF) };
+        mColors[17] = { float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF) };
     }
 
     mMatrices[0] = Matrix4f::Id;
@@ -286,7 +291,7 @@ int32_t BalyrinthGeneratorWindow::Init()
         {
             Binder lBinder(*mPathShader);
             mPathShader->UpdateUniform("model_index", 0);
-            mPathShader->UpdateUniform("color_index", 5);
+            mPathShader->UpdateUniform("color_index", 9);
         }
 
         mPathShader->LinkUbo(mMatricesUbo);
@@ -308,7 +313,7 @@ int32_t BalyrinthGeneratorWindow::Init()
     mRenderableLongestPath = new Renderable(mPathShader, 1, lItemSizes, 0);
 
     {
-        uint8_t lBaseIndex = 6;
+        uint8_t lBaseIndex = 10;
 
         std::vector<Vector3f> lCollapsedVertices =
         {
@@ -507,8 +512,9 @@ void BalyrinthGeneratorWindow::Render()
     }
 
     {
-        float lHOffset = mMazeGeometryParameters.Width;
-        float lVOffset = mMazeGeometryParameters.Height;
+        Vector3f lSpaceSize = mShapeProvider->GetSpaceSize();
+        float lHOffset = lSpaceSize.X;
+        float lVOffset = lSpaceSize.Y;
 
         Transformf lTransform = mMainTransform;
 
@@ -616,13 +622,14 @@ void BalyrinthGeneratorWindow::ProcessImGui()
 
             if (ImGui::CollapsingHeader("Maze Drawer"))
             {
-                lUpdateMazeDrawerParameters |= ExecuteCombobox("Shape Mode", mShapeModes);
+                lUpdateMazeDrawerParameters |= ImGui::Checkbox("Contiguous Draw", &mContiguousDraw);
+                //lUpdateMazeDrawerParameters |= ExecuteCombobox("Shape Mode", mShapeModes);
                 lUpdateMazeDrawerParameters |= ExecuteCombobox("Node Shape", mNodeShapeModes);
                 if (lUpdateMazeDrawerParameters)
                 {//HACK
                     //mMazeGeometryParameters.ViewOffset = { 0, 0 };
                     //mLabyrinthStepper.SetUpdateListener(mShapeDrawModes.Item());
-                    mMazeDrawer->SetParameters({ mShapeModes.Item(), mNodeShapeModes.Item() });
+                    mMazeDrawer->SetParameters({ mContiguousDraw/*mShapeModes.Item()*/, mNodeShapeModes.Item() });
                     lDrawParamChanged = true;
                 }
             }
@@ -654,13 +661,13 @@ void BalyrinthGeneratorWindow::ProcessImGui()
                 ImGui::ColorEdit4("Background Color", (&mBackgroundColor.R));
                 ImGui::ColorEdit4("Lines Color", (&mColors[0].R));
 
-                for (size_t i = 1; i < 5; ++i)
+                for (size_t i = 1; i < 9; ++i)
                 {
                     std::string lNumber = std::to_string(i);
 
                     ImGui::ColorEdit4(("Node Color " + lNumber).c_str(), (&mColors[i].R));
                 }
-                ImGui::ColorEdit4("Path Color", (&mColors[5].R));
+                ImGui::ColorEdit4("Path Color", (&mColors[9].R));
             }
 
             ImGui::Checkbox("Show neighbors", &mShowNeighbors);
@@ -710,7 +717,7 @@ void BalyrinthGeneratorWindow::ProcessImGui()
             {
                 std::string lNumber = std::to_string(i);
 
-                ImGui::ColorEdit4(("Vertex Color " + lNumber).c_str(), (&mColors[6 + i].R));
+                ImGui::ColorEdit4(("Vertex Color " + lNumber).c_str(), (&mColors[10 + i].R));
             }
 
             mQuaternion = mMainTransform.GetOrientation();
@@ -779,6 +786,8 @@ void BalyrinthGeneratorWindow::InternalUpdateTopology()
     };
 
     mShapeProvider = ((ShapeGenerator*)mShapeGenerators.Item())(lParameters);
+    mMazeGeometryParameters.Width = lParameters.Params[0].ValueAsInteger32;
+    mMazeGeometryParameters.Height = lParameters.Params[1].ValueAsInteger32;
 
     mLabyrinthStepper.UpdateTopology(mShapeProvider->GetTopology(), mShapeProvider->GetRoomNeighborhood());
     mCurrentTopology = mLabyrinthStepper.GetTopology();

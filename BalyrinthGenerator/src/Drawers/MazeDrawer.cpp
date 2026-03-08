@@ -8,14 +8,16 @@
 
 #define DEBUG_MULT .001f
 
-#define TWO_DIV_SQR3 1.1547005383792515290182975610039
+#define SQRT3BY2 .86602540378443864676372317075294f
+#define SQRT3 1.7320508075688772935274463415059f
+#define TWOBYSQRT3 1.1547005383792515290182975610039f
 
-static Vector3f P0{ 1.f, 0.5 * 1.1547005383792515290182975610039 , 0.f };
-static Vector3f P1{ 0.f, 1.f * 1.1547005383792515290182975610039 , 0.f };
-static Vector3f P2{ -1.f, 0.5 * 1.1547005383792515290182975610039 , 0.f };
-static Vector3f P3{ -1.f, -0.5 * 1.1547005383792515290182975610039 , 0.f };
-static Vector3f P4{ 0.f, -1.f * 1.1547005383792515290182975610039 , 0.f };
-static Vector3f P5{ 1.f, -0.5 * 1.1547005383792515290182975610039 , 0.f };
+static Vector3f P0{ SQRT3, 1.f, 0.f };
+static Vector3f P1{ 0.f, 2.f, 0.f };
+static Vector3f P2{ -SQRT3, 1.f, 0.f };
+static Vector3f P3{ -SQRT3, -1.f, 0.f };
+static Vector3f P4{ 0.f, -2.f, 0.f };
+static Vector3f P5{ SQRT3, -1.f, 0.f };
 
 class NodeShapeProvider
 {
@@ -25,22 +27,18 @@ public:
         return mVertexCountPerNode;
     }
 
-    virtual void DrawNode(std::vector<float>& pContainer, const Vector2f& pNodePosition, const MazeGeometryParameters& pMazeGeometryParameters, bool pEvenRow) = 0;
+    virtual void DrawNode(std::vector<float>& pContainer, const Vector3f& pNodePosition, const MazeGeometryParameters& pMazeGeometryParameters, bool pEvenRow) = 0;
 
 
 protected:
     size_t mVertexCountPerNode;
 };
 
-void AddAARect(std::vector<float>& pContainer, const Vector3f& pMin, const Vector3f& pMax)
+class EdgeShapeProvider
 {
-    pContainer.push_back(pMin.X); pContainer.push_back(pMin.Y); pContainer.push_back(pMin.Z);
-    pContainer.push_back(pMax.X); pContainer.push_back(pMin.Y); pContainer.push_back(pMin.Z);
-    pContainer.push_back(pMax.X); pContainer.push_back(pMax.Y); pContainer.push_back(pMin.Z);
-    pContainer.push_back(pMax.X); pContainer.push_back(pMax.Y); pContainer.push_back(pMin.Z);
-    pContainer.push_back(pMin.X); pContainer.push_back(pMax.Y); pContainer.push_back(pMin.Z);
-    pContainer.push_back(pMin.X); pContainer.push_back(pMin.Y); pContainer.push_back(pMin.Z);
-}
+public:
+    virtual void DrawEdge(std::vector<float>& pContainer, uint32_t pNodeIndex0, uint32_t pNodeIndex1, float pDepth) = 0;
+};
 
 //TODO::Add Grid on which you handle a topology 
 
@@ -53,7 +51,7 @@ public:
         mVertexCountPerNode = 0;
     }
 
-    void DrawNode(std::vector<float>& pContainer, const Vector2f& pNodePosition, const MazeGeometryParameters& pMazeGeometryParameters, bool pEvenRow) override
+    void DrawNode(std::vector<float>& pContainer, const Vector3f& pNodePosition, const MazeGeometryParameters& pMazeGeometryParameters, bool pEvenRow) override
     {
     }
 };
@@ -66,9 +64,9 @@ public:
         mVertexCountPerNode = 3;
     }
 
-    void DrawNode(std::vector<float>& pContainer, const Vector2f& pNodePosition, const MazeGeometryParameters& pMazeGeometryParameters, bool pEvenRow) override
+    void DrawNode(std::vector<float>& pContainer, const Vector3f& pNodePosition, const MazeGeometryParameters& pMazeGeometryParameters, bool pEvenRow) override
     {
-        Vector3f lPosition{ pNodePosition.X, pNodePosition.Y, -2 * DEBUG_MULT };
+        Vector3f lPosition{ pNodePosition.X, pNodePosition.Y, pNodePosition.Z -2 * DEBUG_MULT };
 
         AddTriangle(pContainer, lPosition, pMazeGeometryParameters.PointWidth / 2, pEvenRow);
     }
@@ -99,14 +97,23 @@ public:
         mVertexCountPerNode = 6;
     }
 
-    void DrawNode(std::vector<float>& pContainer, const Vector2f& pNodePosition, const MazeGeometryParameters& pMazeGeometryParameters, bool pEvenRow) override
+    void DrawNode(std::vector<float>& pContainer, const Vector3f& pNodePosition, const MazeGeometryParameters& pMazeGeometryParameters, bool pEvenRow) override
     {
-        Vector3f lMin{ pNodePosition.X - pMazeGeometryParameters.PointWidth / 2, pNodePosition.Y - pMazeGeometryParameters.PointWidth / 2, -2 * DEBUG_MULT };
-        Vector3f lMax{ pNodePosition.X + pMazeGeometryParameters.PointWidth / 2, pNodePosition.Y + pMazeGeometryParameters.PointWidth / 2, -2 * DEBUG_MULT };
+        Vector3f lMin{ pNodePosition.X - pMazeGeometryParameters.PointWidth / 2, pNodePosition.Y - pMazeGeometryParameters.PointWidth / 2, pNodePosition.Z -2 * DEBUG_MULT };
+        Vector3f lMax{ pNodePosition.X + pMazeGeometryParameters.PointWidth / 2, pNodePosition.Y + pMazeGeometryParameters.PointWidth / 2, pNodePosition.Z -2 * DEBUG_MULT };
         AddAARect(pContainer, lMin, lMax);
     }
 
 private:
+    void AddAARect(std::vector<float>& pContainer, const Vector3f& pMin, const Vector3f& pMax)
+    {
+        pContainer.push_back(pMin.X); pContainer.push_back(pMin.Y); pContainer.push_back(pMin.Z);
+        pContainer.push_back(pMax.X); pContainer.push_back(pMin.Y); pContainer.push_back(pMin.Z);
+        pContainer.push_back(pMax.X); pContainer.push_back(pMax.Y); pContainer.push_back(pMin.Z);
+        pContainer.push_back(pMax.X); pContainer.push_back(pMax.Y); pContainer.push_back(pMin.Z);
+        pContainer.push_back(pMin.X); pContainer.push_back(pMax.Y); pContainer.push_back(pMin.Z);
+        pContainer.push_back(pMin.X); pContainer.push_back(pMin.Y); pContainer.push_back(pMin.Z);
+    }
 };
 
 class HexagonNodeShapeProvider:public NodeShapeProvider
@@ -117,9 +124,9 @@ public:
         mVertexCountPerNode = 12;
     }
 
-    void DrawNode(std::vector<float>& pContainer, const Vector2f& pNodePosition, const MazeGeometryParameters& pMazeGeometryParameters, bool pEvenRow) override
+    void DrawNode(std::vector<float>& pContainer, const Vector3f& pNodePosition, const MazeGeometryParameters& pMazeGeometryParameters, bool pEvenRow) override
     {
-        Vector3f lPosition{ pNodePosition.X, pNodePosition.Y, -2 * DEBUG_MULT };
+        Vector3f lPosition{ pNodePosition.X, pNodePosition.Y, pNodePosition.Z -2 * DEBUG_MULT };
         //Vector3f lMax{ pNodePosition.X + pMazeGeometryParameters.PointWidth / 2, pNodePosition.Y + pMazeGeometryParameters.PointWidth / 2, -2 * DEBUG_MULT };
         AddHexagon(pContainer, lPosition, pMazeGeometryParameters.PointWidth / 2);
     }
@@ -164,7 +171,7 @@ void MazeDrawer::SetParameters(MazeDrawerParameters pParameters)
     mParameters = pParameters;
     delete mNodeShapeProvider;
     mNodeShapeProvider = nullptr;
-
+    
     switch (mParameters.ShapeOfNode)
     {
     case NodeShape::Triangle:
@@ -183,6 +190,14 @@ void MazeDrawer::SetParameters(MazeDrawerParameters pParameters)
         mNodeShapeProvider = new InvalidNodeShapeProvider();
         break;
     }
+
+    delete mEdgeShapeProvider;
+    mEdgeShapeProvider = nullptr;
+
+    //switch (mParameters.Mode)
+    //{
+    //
+    //}
 }
 
 size_t MazeDrawer::GetVertexCountPerNode() const
@@ -197,13 +212,13 @@ void MazeDrawer::AddFirstNode(uint32_t pNodeIndex)
     //clean
     mGeometryContainer.CleanupGeometry();
 
-    mNodePositions.resize(mMazeGeometryParameters.Width * mMazeGeometryParameters.Height, Vector2f{ FLT_MAX , FLT_MAX });
+    mNodePositions.resize(mMazeGeometryParameters.Width * mMazeGeometryParameters.Height, Vector3f{ FLT_MAX, FLT_MAX, FLT_MAX });
 
     for (size_t j = 0; j < mMazeGeometryParameters.Height; ++j)
     {
         for (size_t i = 0; i < mMazeGeometryParameters.Width; ++i)
         {
-            mNodePositions[j * mMazeGeometryParameters.Width + i] = Vector2f{ float(i), float(j) };
+            mNodePositions[j * mMazeGeometryParameters.Width + i] = mShape->GetNodeNormalizedPosition(j * mMazeGeometryParameters.Width + i);// Vector2f{ float(i), float(j) };
         }
     }
 
@@ -247,7 +262,7 @@ void MazeDrawer::DrawNode(uint32_t pIndex, bool pInit)
         mLastLutIndex = 0;
     }
 
-    const Vector2f& lNodePosition = mNodePositions[pIndex];
+    const Vector3f& lNodePosition = mNodePositions[pIndex];
     mForNodesLut[pIndex] = mLastLutIndex++;
 
     bool lIsEvenRow = ((pIndex / mMazeGeometryParameters.Width) % 2 == 0);
@@ -256,103 +271,6 @@ void MazeDrawer::DrawNode(uint32_t pIndex, bool pInit)
 
 void MazeDrawer::DrawEdge(std::vector<float>& pContainer, uint32_t pNodeIndex0, uint32_t pNodeIndex1, float pDepth)
 {
-    switch (mParameters.Mode)
-    {
-    case ShapeMode::Contiguous:
-    {
-        const Vector2f& lNode0Position = mNodePositions[pNodeIndex0];
-
-        Vector3f lSpaceDelta = mShape->GetUnitSpaceDelta(pNodeIndex0, pNodeIndex1);
-
-        Vector3f lNodeNormalizedPos0 = mShape->GetNodeNormalizedPosition(pNodeIndex0);
-        Vector3f lNodeNormalizedPos1 = mShape->GetNodeNormalizedPosition(pNodeIndex1);
-
-        Vector2f lInitialNode0Position = { lNodeNormalizedPos0.X , lNodeNormalizedPos0.Y };
-
-        //Since the space delta is from node 0 to node 1, we need to compensate it with opposited delta
-        Vector2f lInitialNode1Position = { (lNodeNormalizedPos1.X - lSpaceDelta.X * mSpaceSize.X),
-                                       (lNodeNormalizedPos1.Y - lSpaceDelta.Y * mSpaceSize.Y) };
-
-        Vector2f lNode1Position = lNode0Position + (lInitialNode1Position - lInitialNode0Position);
-
-        mNodePositions[pNodeIndex1] = lNode1Position;
-
-        Vector3f lMin{ std::min(lNode0Position.X, lNode1Position.X) - mLineOffset, std::min(lNode0Position.Y, lNode1Position.Y) - mLineOffset, pDepth };
-        Vector3f lMax{ std::max(lNode0Position.X, lNode1Position.X) + mLineOffset, std::max(lNode0Position.Y, lNode1Position.Y) + mLineOffset, pDepth };
-        AddAARect(pContainer, lMin, lMax);
-    }
-        break;
-    case ShapeMode::Shape:
-    {
-        const Vector2f& lNode0Position = mNodePositions[pNodeIndex0];
-        const Vector2f& lNode1Position = mNodePositions[pNodeIndex1];
-
-        Vector3f lSpaceDelta = mShape->GetUnitSpaceDelta(pNodeIndex0, pNodeIndex1);
-
-        if ((abs(lSpaceDelta.X) + abs(lSpaceDelta.Y) + abs(lSpaceDelta.Z)) == 0)
-        {
-            Vector3f lMin{ std::min(lNode0Position.X, lNode1Position.X) - mLineOffset, std::min(lNode0Position.Y, lNode1Position.Y) - mLineOffset, pDepth };
-            Vector3f lMax{ std::max(lNode0Position.X, lNode1Position.X) + mLineOffset, std::max(lNode0Position.Y, lNode1Position.Y) + mLineOffset, pDepth };
-            AddAARect(pContainer, lMin, lMax);
-        }
-        else if (lSpaceDelta.X < 0 && true)
-        {
-            Vector3f lNodeNormalizedPos1 = mShape->GetNodeNormalizedPosition(pNodeIndex1);
-            Vector2f lVirtualalNode0Position = { (-lSpaceDelta.X * mSpaceSize.X + lNodeNormalizedPos1.X),
-                                             (-lSpaceDelta.Y * mSpaceSize.Y + lNodeNormalizedPos1.Y) };
-
-
-            Vector3f lMin{ lNode0Position.X - mLineOffset, lNode0Position.Y - mLineOffset, pDepth };
-            Vector3f lMax{ lMin.X + mHalfWidth, lVirtualalNode0Position.Y + mLineOffset, pDepth };
-            AddAARect(pContainer, lMin, lMax);
-
-            lMin.X -= mMazeGeometryParameters.Width - mHalfWidth;
-            lMax.X -= mMazeGeometryParameters.Width - mHalfWidth;
-            AddAARect(pContainer, lMin, lMax);
-        }
-        else if (lSpaceDelta.X > 0 && true)
-        {
-            Vector3f lNodeNormalizedPos1 = mShape->GetNodeNormalizedPosition(pNodeIndex1);
-            Vector2f lVirtualNode0Position = { -lSpaceDelta.X * mSpaceSize.X + lNodeNormalizedPos1.X,
-                                           -lSpaceDelta.Y * mSpaceSize.Y + lNodeNormalizedPos1.Y };
-
-            Vector3f lMax{ lNode0Position.X + mLineOffset, lNode0Position.Y + mLineOffset, pDepth };
-            Vector3f lMin{ (lMax.X + lVirtualNode0Position.X - mLineOffset) / 2, lVirtualNode0Position.Y - mLineOffset, pDepth };
-            AddAARect(pContainer, lMin, lMax);
-
-            lMin.X += mMazeGeometryParameters.Width - mHalfWidth;
-            lMax.X += mMazeGeometryParameters.Width - mHalfWidth;
-            AddAARect(pContainer, lMin, lMax);
-        }
-        else if (lSpaceDelta.Y < 0 && true)
-        {
-            Vector3f lNodeNormalizedPos1 = mShape->GetNodeNormalizedPosition(pNodeIndex1);
-            Vector2f lVirtualalNode0Position = { -lSpaceDelta.X * mSpaceSize.X + lNodeNormalizedPos1.X,
-                                             -lSpaceDelta.Y * mSpaceSize.Y + lNodeNormalizedPos1.Y };
-
-            Vector3f lMin{ lNode0Position.X - mLineOffset, lNode0Position.Y - mLineOffset, pDepth };
-            Vector3f lMax{ lVirtualalNode0Position.X + mLineOffset, (lMin.Y + lVirtualalNode0Position.Y + mLineOffset) / 2, pDepth };
-            AddAARect(pContainer, lMin, lMax);
-
-            lMin.Y -= mMazeGeometryParameters.Height - mHalfWidth;
-            lMax.Y -= mMazeGeometryParameters.Height - mHalfWidth;
-            AddAARect(pContainer, lMin, lMax);
-        }
-        else if (lSpaceDelta.Y > 0 && true)
-        {
-            Vector3f lNodeNormalizedPos1 = mShape->GetNodeNormalizedPosition(pNodeIndex1);
-            Vector2f lVirtualNode0Position = { -lSpaceDelta.X * mSpaceSize.X + lNodeNormalizedPos1.X,
-                                           -lSpaceDelta.Y * mSpaceSize.Y + lNodeNormalizedPos1.Y };
-
-            Vector3f lMax{ lNode0Position.X + mLineOffset, lNode0Position.Y + mLineOffset, pDepth };
-            Vector3f lMin{ lVirtualNode0Position.X - mLineOffset, (lMax.Y + lVirtualNode0Position.Y - mLineOffset) / 2, pDepth };
-            AddAARect(pContainer, lMin, lMax);
-
-            lMin.Y += mMazeGeometryParameters.Height - mHalfWidth;
-            lMax.Y += mMazeGeometryParameters.Height - mHalfWidth;
-            AddAARect(pContainer, lMin, lMax);
-        }
-    }
-        break;
-    }
+    //TODO: draw edge from provider
+    mShape->DrawEdge(mNodePositions, pContainer, pNodeIndex0, pNodeIndex1, pDepth, mMazeGeometryParameters.LineWidth, mParameters.ContiguousDraw);
 }

@@ -1,7 +1,7 @@
 #pragma once
 
-enum class ShapeMode
-{
-    Shape,
-    Contiguous,
-};
+//enum class ShapeMode
+//{
+//    Shape,
+//    Contiguous,
+//};

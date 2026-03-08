@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include <Vector2f.h>
+#include <Vector3f.h>
 
 struct MazeGeometryParameters;
 class Shape;
@@ -12,7 +12,7 @@ class GeometryContainer
 public:
     virtual Shape* GetShape() = 0;
 
-    virtual std::vector<Vector2f>& GetNodePositions() = 0;
+    virtual std::vector<Vector3f>& GetNodePositions() = 0;
     virtual MazeGeometryParameters& GetMazeGeometryParameters() = 0;
     virtual std::vector<float>& GetVerticesToAdd() = 0;
 

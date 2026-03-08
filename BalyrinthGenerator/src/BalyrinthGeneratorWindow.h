@@ -77,7 +77,7 @@ public:
     ~BalyrinthGeneratorWindow();
 
     Shape* GetShape() override;
-    std::vector<Vector2f>& GetNodePositions() override;
+    std::vector<Vector3f>& GetNodePositions() override;
     MazeGeometryParameters& GetMazeGeometryParameters() override;
     std::vector<float>& GetVerticesToAdd() override;
     std::vector<float>& GetForNodesVerticesToAdd() override;
@@ -133,7 +133,8 @@ private:
     void InternalUpdateTopology();
 
     SelectableGroup<void*> mShapeGenerators;
-    SelectableGroup<ShapeMode> mShapeModes;
+    bool mContiguousDraw = false;
+    //SelectableGroup<ShapeMode> mShapeModes;
     SelectableGroup<NodeShape> mNodeShapeModes;
 
     SelectableGroup<RoomSelect> mRoomSelectMode;
@@ -147,7 +148,7 @@ private:
     std::unordered_set<uint32_t> mAlreadyProcessed;
     std::queue<std::pair<uint32_t, Vector2f>> mNodesToProcess;
 
-    std::vector<Vector2f> mNodePositions;
+    std::vector<Vector3f> mNodePositions;
 
     Viewport* mViewport = nullptr;
 

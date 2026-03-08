@@ -10,14 +10,16 @@
 
 struct MazeDrawerParameters
 {
-    ShapeMode Mode;
+    bool ContiguousDraw;
+    //ShapeMode Mode;
     NodeShape ShapeOfNode;
 };
 
 class NodeShapeProvider;
+class EdgeShapeProvider;
 
 class MazeDrawer;
-typedef void (MazeDrawer::* DrawRectangleFunc)(const Vector3f& pMin, const Vector3f& pMax);
+//typedef void (MazeDrawer::* DrawRectangleFunc)(const Vector3f& pMin, const Vector3f& pMax);
 
 class MazeDrawer:public TopologyUpdaterListener
 {
@@ -34,7 +36,7 @@ public:
 
 protected:
     GeometryContainer& mGeometryContainer;
-    std::vector<Vector2f>& mNodePositions;
+    std::vector<Vector3f>& mNodePositions;
     MazeGeometryParameters& mMazeGeometryParameters;
 
     std::vector<float>& mVerticesToAdd;
@@ -60,6 +62,7 @@ protected:
     MazeDrawerParameters mParameters;
 
     NodeShapeProvider* mNodeShapeProvider = nullptr;
+    EdgeShapeProvider* mEdgeShapeProvider = nullptr;
 
     void DrawNode(uint32_t pIndex, bool pInit = false);
 

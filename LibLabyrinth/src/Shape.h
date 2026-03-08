@@ -5,6 +5,8 @@
 #include <cstdint>//uint32_t
 #include <cstddef>//size_t
 
+#include <vector>
+
 class Topology;
 
 struct Vector3f;
@@ -40,24 +42,6 @@ enum class RoomType
 	Cubic,
 };
 
-#if 0
-class LABYRINTH_API RoomShape
-{
-public:
-	RoomShape(uint32_t pDriectionCount);
-	void SetDirection(uint32_t pDirectionIndex, )
-
-private:
-	uint32_t mDirectionCount;
-};
-
-RoomShape::RoomShape(uint32_t pDriectionCount):
-	mDirectionCount(pDriectionCount)
-{
-
-}
-#endif
-
 class RoomNeighborhood;
 
 //TODO: Constify
@@ -72,6 +56,9 @@ public:
 	virtual Vector3f GetNodeNormalizedPosition(uint32_t pIndex) = 0;
 	virtual Vector3f GetSpaceSize() = 0;
 	virtual Vector3f GetUnitSpaceDelta(uint32_t pIndex0, uint32_t pIndex1) = 0;
+
+	//TODO: constify pNodePositions
+	virtual void DrawEdge(std::vector<Vector3f>& pNodePositions, std::vector<float>& pContainer, uint32_t pNodeIndex0, uint32_t pNodeIndex1, float pDepth, float pLineWidth, bool pContiguousDraw) = 0;
 
 protected:
 	Topology* mTopology = nullptr;

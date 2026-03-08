@@ -4,16 +4,6 @@
 
 #include <cstdint>
 
-#if 0
-enum class Algorithm
-{
-	WallBreakerStackBacktrack,
-	WallBreakerQueueBacktrack,
-	WallBreakerRandomBacktrack,
-	WallBreakerBloom,
-};
-#endif
-
 enum class RoomSelect//Maybe one to force choose a node with only one connection to generate corridor maze: the deepest maze ever
 {
 	Last,
