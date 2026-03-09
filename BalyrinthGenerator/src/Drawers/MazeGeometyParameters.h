@@ -7,6 +7,6 @@ struct MazeGeometryParameters
     size_t Width = 10;
     size_t Height = 10;
 
-    float PointWidth = .5f;
-    float LineWidth = .25f;
+    float NodeWidth = .5f;
+    float EdgeWidth = .25f;
 };

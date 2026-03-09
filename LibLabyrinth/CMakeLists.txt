@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_compile_definitions(LABYRINTH_EXPORTS)
 
 add_library(LibLabyrinth SHARED 
+    src/GridShape.h
     src/IndexProvider.h
     src/Labyrinth.h
     src/Labyrinth.cpp

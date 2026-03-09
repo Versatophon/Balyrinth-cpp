@@ -11,7 +11,6 @@
 struct MazeDrawerParameters
 {
     bool ContiguousDraw;
-    //ShapeMode Mode;
     NodeShape ShapeOfNode;
 };
 
@@ -19,7 +18,6 @@ class NodeShapeProvider;
 class EdgeShapeProvider;
 
 class MazeDrawer;
-//typedef void (MazeDrawer::* DrawRectangleFunc)(const Vector3f& pMin, const Vector3f& pMax);
 
 class MazeDrawer:public TopologyUpdaterListener
 {
@@ -29,6 +27,7 @@ public:
     void SetParameters(MazeDrawerParameters pParameters);
 
     size_t GetVertexCountPerNode() const;
+    size_t GetVertexCountPerEdge() const;
 
     void AddFirstNode(uint32_t pNodeIndex) override;
     void AddEdge(uint32_t pNodeIndex0, uint32_t pNodeIndex1) override;
@@ -56,9 +55,6 @@ protected:
     Vector3f mSpaceSize = { 1, 1, 1 };
     float mHalfWidth = .5f;
 
-    //size_t mVertexCountPerNode = 12;
-
-    //ShapeMode mShapeMode;
     MazeDrawerParameters mParameters;
 
     NodeShapeProvider* mNodeShapeProvider = nullptr;
@@ -66,9 +62,5 @@ protected:
 
     void DrawNode(uint32_t pIndex, bool pInit = false);
 
-    //void DrawAANode(const Vector3f& pMin, const Vector3f& pMax);
-    //void DrawAAEdge(const Vector3f& pMin, const Vector3f& pMax);
-    //void DrawAAPath(const Vector3f& pMin, const Vector3f& pMax);
-
-    void DrawEdge(/*DrawRectangleFunc pFunction, */std::vector<float>& pContainer, uint32_t pNodeIndex0, uint32_t pNodeIndex1, float pDepth);
+    void DrawEdge(std::vector<float>& pContainer, uint32_t pNodeIndex0, uint32_t pNodeIndex1, float pDepth);
 };

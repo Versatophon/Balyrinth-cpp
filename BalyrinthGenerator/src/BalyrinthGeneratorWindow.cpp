@@ -73,8 +73,7 @@ mLabyrinthStepper(LabyrinthStepper({ RoomSelect::Last, Backtrack::Queue, Compute
                          {"Squares On Rect", (void*)GenerateSquaresOnRectShape},
                          {"Hexagons On Rect", (void*)GenerateHexagonsOnRectShape}}};
 
-    //mShapeModes = {{{"Shape", ShapeMode::Shape},
-    //                {"Contiguous", ShapeMode::Contiguous}}};
+    mShapeGenerators.mSelectedIndex = 2;
 
     mNodeShapeModes = {{{"Triangle", NodeShape::Triangle},
                         {"Square", NodeShape::Square},
@@ -83,7 +82,7 @@ mLabyrinthStepper(LabyrinthStepper({ RoomSelect::Last, Backtrack::Queue, Compute
                         {"Heptagon", NodeShape::Heptagon},
                         {"Octogon", NodeShape::Octogon}}};
 
-    mNodeShapeModes.mSelectedIndex = 1;
+    mNodeShapeModes.mSelectedIndex = 3;
 
     mRoomSelectMode = {{{"Last Room Added", RoomSelect::Last},
                         {"Fill Room", RoomSelect::Fill}} };
@@ -299,8 +298,7 @@ int32_t BalyrinthGeneratorWindow::Init()
         mPathShader->LinkUbo(mColorsUbo);
     }
 
-    uint32_t lVertexCount = (((mMazeGeometryParameters.Height * mMazeGeometryParameters.Width) - 1) + (mMazeGeometryParameters.Height + mMazeGeometryParameters.Width) * 2) * 6;
-
+    uint32_t lVertexCount = (((mMazeGeometryParameters.Height * mMazeGeometryParameters.Width) - 1) + (mMazeGeometryParameters.Height + mMazeGeometryParameters.Width) * 2) * 12;//HACK
 
     size_t lItemSizes[] = {sizeof(float) * 3, 1};
 
@@ -308,7 +306,7 @@ int32_t BalyrinthGeneratorWindow::Init()
     mRenderableLabyrinth = new Renderable(mLabyrinthShader, 1, lItemSizes, lVertexCount);
 
     //Initialize nodes geometry
-    mRenderableNodes = new Renderable(mNodeShader, 2, lItemSizes, lVertexCount);
+    mRenderableNodes = new Renderable(mNodeShader, 2, lItemSizes, mMazeGeometryParameters.Height * mMazeGeometryParameters.Width * mMazeDrawer->GetVertexCountPerNode());
 
     mRenderableLongestPath = new Renderable(mPathShader, 1, lItemSizes, 0);
 
@@ -472,7 +470,7 @@ void BalyrinthGeneratorWindow::Render()
     {
         uint32_t lMaxVertexCount = 
             (((mMazeGeometryParameters.Height * mMazeGeometryParameters.Width) - 1) 
-            + (mMazeGeometryParameters.Height + mMazeGeometryParameters.Width) * 2) * 6;
+            + (mMazeGeometryParameters.Height + mMazeGeometryParameters.Width) * 2) * mMazeDrawer->GetVertexCountPerEdge();
 
         //TODO: use a different shader instead of uploading a color index array
         mRenderableLabyrinth->SetItemCount(lMaxVertexCount);
@@ -653,8 +651,8 @@ void BalyrinthGeneratorWindow::ProcessImGui()
             ImGui::Checkbox("Show Edges", &mRenderEdges);
             ImGui::Checkbox("Show Path", &mRenderPath);
 
-            lDrawParamChanged |= ImGui::DragFloat("Point Width", &mMazeGeometryParameters.PointWidth, 0.005f, .005f, 1.1f);
-            lDrawParamChanged |= ImGui::DragFloat("Line Width", &mMazeGeometryParameters.LineWidth, 0.005f, .005f, 1.1f);
+            lDrawParamChanged |= ImGui::DragFloat("Node Width", &mMazeGeometryParameters.NodeWidth, 0.005f, .005f, 1.1f);
+            lDrawParamChanged |= ImGui::DragFloat("Edge Width", &mMazeGeometryParameters.EdgeWidth, 0.005f, .005f, 1.1f);
 
             if (ImGui::CollapsingHeader("Colors"))
             {

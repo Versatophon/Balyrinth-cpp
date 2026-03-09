@@ -7,6 +7,10 @@
 
 #include <vector>
 
+#include <Vector3i.h>
+
+#include "GridShape.h"
+
 class Topology;
 
 struct Vector3f;
@@ -52,18 +56,19 @@ public:
 	virtual ~Shape();
 	Topology* GetTopology();
 	RoomNeighborhood* GetRoomNeighborhood();
+	Vector3i GetSize();
 
 	virtual Vector3f GetNodeNormalizedPosition(uint32_t pIndex) = 0;
 	virtual Vector3f GetSpaceSize() = 0;
 	virtual Vector3f GetUnitSpaceDelta(uint32_t pIndex0, uint32_t pIndex1) = 0;
 
-	//TODO: constify pNodePositions
-	virtual void DrawEdge(std::vector<Vector3f>& pNodePositions, std::vector<float>& pContainer, uint32_t pNodeIndex0, uint32_t pNodeIndex1, float pDepth, float pLineWidth, bool pContiguousDraw) = 0;
+	virtual GridShape GetGridShape() = 0;
 
 protected:
 	Topology* mTopology = nullptr;
 	RoomNeighborhood* mRoomNeighborhood = nullptr;
 	RoomType mRoomType = RoomType::Undefined;
+	Vector3i mSize;
 };
 
 typedef Shape* (ShapeGenerator)(Parameters& pParameters);

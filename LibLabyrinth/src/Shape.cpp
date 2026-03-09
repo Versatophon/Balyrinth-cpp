@@ -38,6 +38,11 @@ RoomNeighborhood* Shape::GetRoomNeighborhood()
 	return mRoomNeighborhood;
 }
 
+Vector3i Shape::GetSize()
+{
+	return mSize;
+}
+
 class RectangularSpaceSquareRoomNeighborhood:public RoomNeighborhood
 {
 	enum class Direction :uint32_t
@@ -144,27 +149,26 @@ class SquareRoomsOnRectangularSpace: public Shape
 {
 public:
 	SquareRoomsOnRectangularSpace(size_t pWidth, size_t pHeight):
-		Shape(),
-		mWidth(pWidth),
-		mHeight(pHeight)
+		Shape()
 	{
+		mSize = { int32_t(pWidth), int32_t(pHeight), 1};
 		mRoomType = RoomType::Square;
-		mTopology = new Topology(pWidth * pHeight);
-		mRoomNeighborhood = new RectangularSpaceSquareRoomNeighborhood(mWidth, mHeight);
+		mTopology = new Topology(mSize.X * mSize.Y);
+		mRoomNeighborhood = new RectangularSpaceSquareRoomNeighborhood(mSize.X, mSize.Y);
 
-		for (size_t j = 0; j < pHeight; ++j)
+		for (size_t j = 0; j < mSize.Y; ++j)
 		{
-			for (size_t i = 0; i < pWidth; ++i)
+			for (size_t i = 0; i < mSize.X; ++i)
 			{
-				size_t lRoomIndex = j * pWidth + i;
-				if (i < pWidth - 1)
+				size_t lRoomIndex = j * mSize.X + i;
+				if (i < mSize.X - 1)
 				{
 					mTopology->ConnectNodes(lRoomIndex, lRoomIndex + 1);
 				}
 
-				if (j < pHeight - 1)
+				if (j < mSize.Y - 1)
 				{
-					mTopology->ConnectNodes(lRoomIndex, lRoomIndex + pWidth);
+					mTopology->ConnectNodes(lRoomIndex, lRoomIndex + mSize.X);
 				}
 			}
 		}
@@ -178,12 +182,12 @@ public:
 
 	Vector3f GetNodeNormalizedPosition(uint32_t pIndex) override
 	{
-		return Vector3f(pIndex % mWidth, pIndex / mWidth, 0);
+		return Vector3f(pIndex % mSize.X, pIndex / mSize.X, 0);
 	}
 
 	Vector3f GetSpaceSize() override
 	{
-		return Vector3f(mWidth, mHeight, 1);
+		return Vector3f(mSize.X, mSize.Y, mSize.Z);
 	}
 
 	Vector3f GetUnitSpaceDelta(uint32_t pIndex0, uint32_t pIndex1) override
@@ -191,112 +195,10 @@ public:
 		return { 0, 0, 0 };
 	}
 
-	void DrawEdge(std::vector<Vector3f>& pNodePositions, std::vector<float>& pContainer, uint32_t pNodeIndex0, uint32_t pNodeIndex1, float pDepth, float pLineWidth, bool pContiguousDraw) override
+	GridShape GetGridShape() override
 	{
-		float lLineOffset = pLineWidth / 2.f;
-		//mShape = mGeometryContainer.GetShape();//this
-		Vector3f lSpaceSize = GetSpaceSize();
-		float lHalfWidth = (1.f / 2.f) + lLineOffset;
-
-		if (pContiguousDraw)
-		{
-			const Vector3f& lNode0Position = pNodePositions[pNodeIndex0];
-
-			Vector3f lSpaceDelta = GetUnitSpaceDelta(pNodeIndex0, pNodeIndex1);
-
-			Vector3f lNodeNormalizedPos0 = GetNodeNormalizedPosition(pNodeIndex0);
-			Vector3f lNodeNormalizedPos1 = GetNodeNormalizedPosition(pNodeIndex1);
-
-			Vector3f lInitialNode0Position = { lNodeNormalizedPos0.X, lNodeNormalizedPos0.Y, 0 };
-
-			//Since the space delta is from node 0 to node 1, we need to compensate it with opposited delta
-			Vector3f lInitialNode1Position = { (lNodeNormalizedPos1.X - lSpaceDelta.X * lSpaceSize.X),
-											   (lNodeNormalizedPos1.Y - lSpaceDelta.Y * lSpaceSize.Y), 0 };
-
-			Vector3f lNode1Position = lNode0Position + (lInitialNode1Position - lInitialNode0Position);
-
-			pNodePositions[pNodeIndex1] = lNode1Position;
-
-			Vector3f lMin{ std::min(lNode0Position.X, lNode1Position.X) - lLineOffset, std::min(lNode0Position.Y, lNode1Position.Y) - lLineOffset, pDepth };
-			Vector3f lMax{ std::max(lNode0Position.X, lNode1Position.X) + lLineOffset, std::max(lNode0Position.Y, lNode1Position.Y) + lLineOffset, pDepth };
-			AddAARect(pContainer, lMin, lMax);
-		}
-		else
-		{
-			const Vector3f& lNode0Position = pNodePositions[pNodeIndex0];
-			const Vector3f& lNode1Position = pNodePositions[pNodeIndex1];
-
-			Vector3f lSpaceDelta = GetUnitSpaceDelta(pNodeIndex0, pNodeIndex1);
-
-			if ((abs(lSpaceDelta.X) + abs(lSpaceDelta.Y) + abs(lSpaceDelta.Z)) == 0)
-			{
-				Vector3f lMin{ std::min(lNode0Position.X, lNode1Position.X) - lLineOffset, std::min(lNode0Position.Y, lNode1Position.Y) - lLineOffset, pDepth };
-				Vector3f lMax{ std::max(lNode0Position.X, lNode1Position.X) + lLineOffset, std::max(lNode0Position.Y, lNode1Position.Y) + lLineOffset, pDepth };
-				AddAARect(pContainer, lMin, lMax);
-			}
-			else if (lSpaceDelta.X < 0 && true)
-			{
-				Vector3f lNodeNormalizedPos1 = GetNodeNormalizedPosition(pNodeIndex1);
-				Vector3f lVirtualalNode0Position = { (-lSpaceDelta.X * lSpaceSize.X + lNodeNormalizedPos1.X),
-													 (-lSpaceDelta.Y * lSpaceSize.Y + lNodeNormalizedPos1.Y), 0 };
-
-
-				Vector3f lMin{ lNode0Position.X - lLineOffset, lNode0Position.Y - lLineOffset, pDepth };
-				Vector3f lMax{ lMin.X + lHalfWidth, lVirtualalNode0Position.Y + lLineOffset, pDepth };
-				AddAARect(pContainer, lMin, lMax);
-
-				lMin.X -= mWidth - lHalfWidth;
-				lMax.X -= mWidth - lHalfWidth;
-				AddAARect(pContainer, lMin, lMax);
-			}
-			else if (lSpaceDelta.X > 0 && true)
-			{
-				Vector3f lNodeNormalizedPos1 = GetNodeNormalizedPosition(pNodeIndex1);
-				Vector3f lVirtualNode0Position = { -lSpaceDelta.X * lSpaceSize.X + lNodeNormalizedPos1.X,
-											   -lSpaceDelta.Y * lSpaceSize.Y + lNodeNormalizedPos1.Y, 0 };
-
-				Vector3f lMax{ lNode0Position.X + lLineOffset, lNode0Position.Y + lLineOffset, pDepth };
-				Vector3f lMin{ (lMax.X + lVirtualNode0Position.X - lLineOffset) / 2, lVirtualNode0Position.Y - lLineOffset, pDepth };
-				AddAARect(pContainer, lMin, lMax);
-
-				lMin.X += mWidth - lHalfWidth;
-				lMax.X += mWidth - lHalfWidth;
-				AddAARect(pContainer, lMin, lMax);
-			}
-			else if (lSpaceDelta.Y < 0 && true)
-			{
-				Vector3f lNodeNormalizedPos1 = GetNodeNormalizedPosition(pNodeIndex1);
-				Vector3f lVirtualalNode0Position = { -lSpaceDelta.X * lSpaceSize.X + lNodeNormalizedPos1.X,
-													 -lSpaceDelta.Y * lSpaceSize.Y + lNodeNormalizedPos1.Y, 0 };
-
-				Vector3f lMin{ lNode0Position.X - lLineOffset, lNode0Position.Y - lLineOffset, pDepth };
-				Vector3f lMax{ lVirtualalNode0Position.X + lLineOffset, (lMin.Y + lVirtualalNode0Position.Y + lLineOffset) / 2, pDepth };
-				AddAARect(pContainer, lMin, lMax);
-
-				lMin.Y -= mHeight - lHalfWidth;
-				lMax.Y -= mHeight - lHalfWidth;
-				AddAARect(pContainer, lMin, lMax);
-			}
-			else if (lSpaceDelta.Y > 0 && true)
-			{
-				Vector3f lNodeNormalizedPos1 = GetNodeNormalizedPosition(pNodeIndex1);
-				Vector3f lVirtualNode0Position = { -lSpaceDelta.X * lSpaceSize.X + lNodeNormalizedPos1.X,
-												   -lSpaceDelta.Y * lSpaceSize.Y + lNodeNormalizedPos1.Y, 0 };
-
-				Vector3f lMax{ lNode0Position.X + lLineOffset, lNode0Position.Y + lLineOffset, pDepth };
-				Vector3f lMin{ lVirtualNode0Position.X - lLineOffset, (lMax.Y + lVirtualNode0Position.Y - lLineOffset) / 2, pDepth };
-				AddAARect(pContainer, lMin, lMax);
-
-				lMin.Y += mHeight - lHalfWidth;
-				lMax.Y += mHeight - lHalfWidth;
-				AddAARect(pContainer, lMin, lMax);
-			}
-		}
+		return GridShape::Square;
 	}
-
-private:
-	int32_t mWidth = 10;
-	int32_t mHeight = 10;
 };
 
 class ToreSpaceSquareRoomNeighborhood :public RoomNeighborhood
@@ -426,35 +328,34 @@ public:
 	};
 
 	SquareRoomsOnToreSpace(size_t pWidth, size_t pHeight) :
-		Shape(),
-		mWidth(pWidth),
-		mHeight(pHeight)
+		Shape()
 	{
 		mRoomType = RoomType::Square;
-		mTopology = new Topology(pWidth * pHeight);
-		mRoomNeighborhood = new ToreSpaceSquareRoomNeighborhood(mWidth, mHeight);
+		mSize = { int32_t(pWidth), int32_t(pHeight), 1 };
+		mTopology = new Topology(mSize.X * mSize.Y);
+		mRoomNeighborhood = new ToreSpaceSquareRoomNeighborhood(mSize.X, mSize.Y);
 
-		for (size_t j = 0; j < pHeight; ++j)
+		for (size_t j = 0; j < mSize.Y; ++j)
 		{
-			for (size_t i = 0; i < pWidth; ++i)
+			for (size_t i = 0; i < mSize.X; ++i)
 			{
-				size_t lRoomIndex = j * pWidth + i;
-				if (i < pWidth - 1)
+				size_t lRoomIndex = j * mSize.X + i;
+				if (i < mSize.X - 1)
 				{
 					mTopology->ConnectNodes(lRoomIndex, lRoomIndex + 1);
 				}
 				else
 				{
-					mTopology->ConnectNodes(lRoomIndex, lRoomIndex - pWidth + 1);
+					mTopology->ConnectNodes(lRoomIndex, lRoomIndex - mSize.X + 1);
 				}
 
-				if (j < pHeight - 1)
+				if (j < mSize.Y - 1)
 				{
-					mTopology->ConnectNodes(lRoomIndex, lRoomIndex + pWidth);
+					mTopology->ConnectNodes(lRoomIndex, lRoomIndex + mSize.X);
 				}
 				else
 				{
-					mTopology->ConnectNodes(lRoomIndex, lRoomIndex % pWidth);
+					mTopology->ConnectNodes(lRoomIndex, lRoomIndex % mSize.X);
 				}
 			}
 		}
@@ -468,12 +369,12 @@ public:
 	
 	Vector3f GetNodeNormalizedPosition(uint32_t pIndex) override
 	{
-		return Vector3f(pIndex % mWidth, pIndex / mWidth, 0);
+		return Vector3f(pIndex % mSize.X, pIndex / mSize.X, 0);
 	}
 
 	Vector3f GetSpaceSize() override
 	{
-		return Vector3f(mWidth, mHeight, 1);
+		return Vector3f(mSize.X, mSize.Y, mSize.Z);
 	}
 
 	Vector3f GetUnitSpaceDelta(uint32_t pIndex0, uint32_t pIndex1) override
@@ -495,112 +396,10 @@ public:
 		};
 	}
 
-	void DrawEdge(std::vector<Vector3f>& pNodePositions, std::vector<float>& pContainer, uint32_t pNodeIndex0, uint32_t pNodeIndex1, float pDepth, float pLineWidth, bool pContiguousDraw) override
+	GridShape GetGridShape() override
 	{
-		float lLineOffset = pLineWidth / 2.f;
-		//mShape = mGeometryContainer.GetShape();//this
-		Vector3f lSpaceSize = GetSpaceSize();
-		float lHalfWidth = (1.f / 2.f) + lLineOffset;
-
-		if (pContiguousDraw)
-		{
-			const Vector3f& lNode0Position = pNodePositions[pNodeIndex0];
-
-			Vector3f lSpaceDelta = GetUnitSpaceDelta(pNodeIndex0, pNodeIndex1);
-
-			Vector3f lNodeNormalizedPos0 = GetNodeNormalizedPosition(pNodeIndex0);
-			Vector3f lNodeNormalizedPos1 = GetNodeNormalizedPosition(pNodeIndex1);
-
-			Vector3f lInitialNode0Position = { lNodeNormalizedPos0.X, lNodeNormalizedPos0.Y, 0 };
-
-			//Since the space delta is from node 0 to node 1, we need to compensate it with opposited delta
-			Vector3f lInitialNode1Position = { (lNodeNormalizedPos1.X - lSpaceDelta.X * lSpaceSize.X),
-											   (lNodeNormalizedPos1.Y - lSpaceDelta.Y * lSpaceSize.Y), 0 };
-
-			Vector3f lNode1Position = lNode0Position + (lInitialNode1Position - lInitialNode0Position);
-
-			pNodePositions[pNodeIndex1] = lNode1Position;
-
-			Vector3f lMin{ std::min(lNode0Position.X, lNode1Position.X) - lLineOffset, std::min(lNode0Position.Y, lNode1Position.Y) - lLineOffset, pDepth };
-			Vector3f lMax{ std::max(lNode0Position.X, lNode1Position.X) + lLineOffset, std::max(lNode0Position.Y, lNode1Position.Y) + lLineOffset, pDepth };
-			AddAARect(pContainer, lMin, lMax);
-		}
-		else
-		{
-			const Vector3f& lNode0Position = pNodePositions[pNodeIndex0];
-			const Vector3f& lNode1Position = pNodePositions[pNodeIndex1];
-
-			Vector3f lSpaceDelta = GetUnitSpaceDelta(pNodeIndex0, pNodeIndex1);
-
-			if ((abs(lSpaceDelta.X) + abs(lSpaceDelta.Y) + abs(lSpaceDelta.Z)) == 0)
-			{
-				Vector3f lMin{ std::min(lNode0Position.X, lNode1Position.X) - lLineOffset, std::min(lNode0Position.Y, lNode1Position.Y) - lLineOffset, pDepth };
-				Vector3f lMax{ std::max(lNode0Position.X, lNode1Position.X) + lLineOffset, std::max(lNode0Position.Y, lNode1Position.Y) + lLineOffset, pDepth };
-				AddAARect(pContainer, lMin, lMax);
-			}
-			else if (lSpaceDelta.X < 0 && true)
-			{
-				Vector3f lNodeNormalizedPos1 = GetNodeNormalizedPosition(pNodeIndex1);
-				Vector3f lVirtualalNode0Position = { (-lSpaceDelta.X * lSpaceSize.X + lNodeNormalizedPos1.X),
-													 (-lSpaceDelta.Y * lSpaceSize.Y + lNodeNormalizedPos1.Y), 0 };
-
-
-				Vector3f lMin{ lNode0Position.X - lLineOffset, lNode0Position.Y - lLineOffset, pDepth };
-				Vector3f lMax{ lMin.X + lHalfWidth, lVirtualalNode0Position.Y + lLineOffset, pDepth };
-				AddAARect(pContainer, lMin, lMax);
-
-				lMin.X -= mWidth - lHalfWidth;
-				lMax.X -= mWidth - lHalfWidth;
-				AddAARect(pContainer, lMin, lMax);
-			}
-			else if (lSpaceDelta.X > 0 && true)
-			{
-				Vector3f lNodeNormalizedPos1 = GetNodeNormalizedPosition(pNodeIndex1);
-				Vector3f lVirtualNode0Position = { -lSpaceDelta.X * lSpaceSize.X + lNodeNormalizedPos1.X,
-											   -lSpaceDelta.Y * lSpaceSize.Y + lNodeNormalizedPos1.Y, 0 };
-
-				Vector3f lMax{ lNode0Position.X + lLineOffset, lNode0Position.Y + lLineOffset, pDepth };
-				Vector3f lMin{ (lMax.X + lVirtualNode0Position.X - lLineOffset) / 2, lVirtualNode0Position.Y - lLineOffset, pDepth };
-				AddAARect(pContainer, lMin, lMax);
-
-				lMin.X += mWidth - lHalfWidth;
-				lMax.X += mWidth - lHalfWidth;
-				AddAARect(pContainer, lMin, lMax);
-			}
-			else if (lSpaceDelta.Y < 0 && true)
-			{
-				Vector3f lNodeNormalizedPos1 = GetNodeNormalizedPosition(pNodeIndex1);
-				Vector3f lVirtualalNode0Position = { -lSpaceDelta.X * lSpaceSize.X + lNodeNormalizedPos1.X,
-													 -lSpaceDelta.Y * lSpaceSize.Y + lNodeNormalizedPos1.Y, 0 };
-
-				Vector3f lMin{ lNode0Position.X - lLineOffset, lNode0Position.Y - lLineOffset, pDepth };
-				Vector3f lMax{ lVirtualalNode0Position.X + lLineOffset, (lMin.Y + lVirtualalNode0Position.Y + lLineOffset) / 2, pDepth };
-				AddAARect(pContainer, lMin, lMax);
-
-				lMin.Y -= mHeight - lHalfWidth;
-				lMax.Y -= mHeight - lHalfWidth;
-				AddAARect(pContainer, lMin, lMax);
-			}
-			else if (lSpaceDelta.Y > 0 && true)
-			{
-				Vector3f lNodeNormalizedPos1 = GetNodeNormalizedPosition(pNodeIndex1);
-				Vector3f lVirtualNode0Position = { -lSpaceDelta.X * lSpaceSize.X + lNodeNormalizedPos1.X,
-												   -lSpaceDelta.Y * lSpaceSize.Y + lNodeNormalizedPos1.Y, 0 };
-
-				Vector3f lMax{ lNode0Position.X + lLineOffset, lNode0Position.Y + lLineOffset, pDepth };
-				Vector3f lMin{ lVirtualNode0Position.X - lLineOffset, (lMax.Y + lVirtualNode0Position.Y - lLineOffset) / 2, pDepth };
-				AddAARect(pContainer, lMin, lMax);
-
-				lMin.Y += mHeight - lHalfWidth;
-				lMax.Y += mHeight - lHalfWidth;
-				AddAARect(pContainer, lMin, lMax);
-			}
-		}
+		return GridShape::Square;
 	}
-
-private:
-	int32_t mWidth = 10;
-	int32_t mHeight = 10;
 };
 
 Shape* GenerateSquaresOnRectShape(Parameters& pParameters)
@@ -657,33 +456,9 @@ Shape* GenerateSquaresOnToreShape(Parameters& pParameters)
 //    1,3 -> 3,3 -> 5,3 -> 7,3 -> 9,3 -> 11,3 -> 13,3
 // 0,2 -> 2,2 -> 4,2 -> 6,2 -> 8,2 -> 10,2 -> 12, 2
 //    1,1 -> 3,1 -> 5,1 -> 7,1 -> 9,1 -> 11,1 -> 13,1
-// 0,0 -> 2,0 -> 4,0 -> 6,0 -> 8,0 -> 10,0 -> 12, 
+// 0,0 -> 2,0 -> 4,0 -> 6,0 -> 8,0 -> 10,0 -> 12, 0
 
 #define SQRT3BY2 .86602540378443864676372317075294f
-#define TWOBYSQRT3 1.1547005383792515290182975610039f
-#define SQRT3 1.7320508075688772935274463415059f
-
-#if 1
-static Vector3f P0{ SQRT3BY2, 0.5, 0.f };
-static Vector3f P1{ 0.f, 1.f, 0.f };
-static Vector3f P2{ -SQRT3BY2, .5f, 0.f };
-static Vector3f P3{ -SQRT3BY2, -.5f, 0.f };
-static Vector3f P4{ 0.f, -1.f, 0.f };
-static Vector3f P5{ SQRT3BY2, -.5f, 0.f };
-#else
-static Vector3f P0{ SQRT3, 1.f, 0.f };
-static Vector3f P1{ 0.f, 2.f, 0.f };
-static Vector3f P2{ -SQRT3, 1.f, 0.f };
-static Vector3f P3{ -SQRT3, -1.f, 0.f };
-static Vector3f P4{ 0.f, -2.f, 0.f };
-static Vector3f P5{ SQRT3, -1.f, 0.f };
-#endif
-static Vector3f D0{ 1.f, 0.f, 0.f };
-static Vector3f D1{ .5f, SQRT3BY2, 0.f };
-static Vector3f D2{ -.5f, SQRT3BY2, 0.f };
-static Vector3f D3{ -1.f, 0.f, 0.f };
-static Vector3f D4{ -.5f, -SQRT3BY2, 0.f };
-static Vector3f D5{ .5f, -SQRT3BY2, 0.f };
 
 Vector2i ToHexagonalCoordinates(const Vector2i pInArrayRectangular)
 {
@@ -811,32 +586,28 @@ private:
 		{-1,-1},
 		{1,-1},
 	};
-
-	//int32_t mWidth;
-	//int32_t mHeight;
 };
 
 class HexagonRoomsOnRectangularSpace : public Shape
 {
 public:
 	HexagonRoomsOnRectangularSpace(size_t pWidth, size_t pHeight) :
-		Shape(),
-		mWidth(pWidth),
-		mHeight(pHeight)
+		Shape()
 	{
 		//TODO:
 		mRoomType = RoomType::Hexagonal;
-		mTopology = new Topology(pWidth * pHeight);
+		mSize = { int32_t(pWidth), int32_t(pHeight), 1 };
+		mTopology = new Topology(mSize.X * mSize.Y);
 
 		///std::cout << "Generate " << pWidth << " * " << pHeight << std::endl;
 
-		mRoomNeighborhood = new RectangularSpaceHexagonalRoomNeighborhood(Vector2i{ int32_t(mWidth), int32_t(mHeight) });// new RectangularSpaceSquareRoomNeighborhood(mWidth, mHeight);
+		mRoomNeighborhood = new RectangularSpaceHexagonalRoomNeighborhood(Vector2i{ mSize.X, mSize.Y });// new RectangularSpaceSquareRoomNeighborhood(mWidth, mHeight);
 
-		Vector2i lSize{ pWidth, pHeight };
+		Vector2i lSize{ mSize.X, mSize.Y };
 
-		for (size_t j = 0; j < pHeight; ++j)
+		for (size_t j = 0; j < mSize.Y; ++j)
 		{
-			for (size_t i = 0; i < pWidth; ++i)
+			for (size_t i = 0; i < mSize.X; ++i)
 			{
 				Vector2i lInArrayCoordinates{ i,j };
 				Vector2i lHexagonalCoordinates = ToHexagonalCoordinates(lInArrayCoordinates);
@@ -873,13 +644,13 @@ public:
 
 	Vector3f GetNodeNormalizedPosition(uint32_t pIndex) override
 	{
-		Vector2i lHexagonalCoordinates = ToHexagonalCoordinates(IndexToArrayCoordinates(Vector2i{ int32_t(mWidth), int32_t(mHeight) }, pIndex));
+		Vector2i lHexagonalCoordinates = ToHexagonalCoordinates(IndexToArrayCoordinates(Vector2i{ mSize.X, mSize.Y }, pIndex));
 		return Vector3f(lHexagonalCoordinates.X * SQRT3BY2, lHexagonalCoordinates.Y * 1.5f, 0);
 	}
 
 	Vector3f GetSpaceSize() override
 	{
-		return Vector3f(mWidth * SQRT3BY2 * 2, mHeight * 1.5f, 1);
+		return Vector3f(mSize.X * SQRT3BY2 * 2, mSize.Y * 1.5f, 1);
 	}
 
 	Vector3f GetUnitSpaceDelta(uint32_t pIndex0, uint32_t pIndex1) override
@@ -887,92 +658,10 @@ public:
 		return { 0, 0, 0 };
 	}
 
-	void DrawEdge(std::vector<Vector3f>& pNodePositions, std::vector<float>& pContainer, uint32_t pNodeIndex0, uint32_t pNodeIndex1, float pDepth, float pLineWidth, bool pContiguousDraw) override
+	GridShape GetGridShape() override
 	{
-		float lLineOffset = pLineWidth / 2.f;
-		//mShape = mGeometryContainer.GetShape();//this
-		Vector3f lSpaceSize = GetSpaceSize();
-		float lHalfWidth = (1.f / 2.f) + lLineOffset;
-
-		uint32_t lDirection = mRoomNeighborhood->GetDirection(pNodeIndex0, pNodeIndex1);
-
-		//if (pContiguousDraw)
-		{
-			const Vector3f& lNode0Position = pNodePositions[pNodeIndex0];
-			const Vector3f& lNode1Position = pNodePositions[pNodeIndex1];
-
-			Vector3f lP0;
-			Vector3f lP1;
-			Vector3f lP2;
-			Vector3f lP3;
-			
-			Vector3f lP0_Delta;
-			Vector3f lP1_Delta;
-			Vector3f lP2_Delta;
-			Vector3f lP3_Delta;
-
-			float lMultiplier = pLineWidth/SQRT3;
-
-			switch (lDirection)
-			{
-			case 0:
-				lP0_Delta = pLineWidth * P3 + lMultiplier * D0;
-				lP1_Delta = pLineWidth * P5 + lMultiplier * D3;
-				lP2_Delta = pLineWidth * P0 + lMultiplier * D3;
-				lP3_Delta = pLineWidth * P2 + lMultiplier * D0;
-				break;
-			case 1:
-				lP0_Delta = pLineWidth * P4 + lMultiplier * D1;
-				lP1_Delta = pLineWidth * P0 + lMultiplier * D4;
-				lP2_Delta = pLineWidth * P1 + lMultiplier * D4;
-				lP3_Delta = pLineWidth * P3 + lMultiplier * D1;
-				break;
-			case 2:
-				lP0_Delta = pLineWidth * P5 + lMultiplier * D2;
-				lP1_Delta = pLineWidth * P1 + lMultiplier * D5;
-				lP2_Delta = pLineWidth * P2 + lMultiplier * D5;
-				lP3_Delta = pLineWidth * P4 + lMultiplier * D2;
-				break;
-			case 3:
-				lP0_Delta = pLineWidth * P0 + lMultiplier * D3;
-				lP1_Delta = pLineWidth * P2 + lMultiplier * D0;
-				lP2_Delta = pLineWidth * P3 + lMultiplier * D0;
-				lP3_Delta = pLineWidth * P5 + lMultiplier * D3;
-				break;
-			case 4:
-				lP0_Delta = pLineWidth * P1 + lMultiplier * D4;
-				lP1_Delta = pLineWidth * P3 + lMultiplier * D1;
-				lP2_Delta = pLineWidth * P4 + lMultiplier * D1;
-				lP3_Delta = pLineWidth * P0 + lMultiplier * D4;
-				break;
-			case 5:
-				lP0_Delta = pLineWidth * P2 + lMultiplier * D5;
-				lP1_Delta = pLineWidth * P4 + lMultiplier * D2;
-				lP2_Delta = pLineWidth * P5 + lMultiplier * D2;
-				lP3_Delta = pLineWidth * P1 + lMultiplier * D5;
-				break;
-			}
-
-			lP0 = lNode0Position + lP0_Delta;
-			lP1 = lNode1Position + lP1_Delta;
-			lP2 = lNode1Position + lP2_Delta;
-			lP3 = lNode0Position + lP3_Delta;
-
-			{
-				pContainer.push_back(lP0.X); pContainer.push_back(lP0.Y); pContainer.push_back(pDepth);
-				pContainer.push_back(lP1.X); pContainer.push_back(lP1.Y); pContainer.push_back(pDepth);
-				pContainer.push_back(lP2.X); pContainer.push_back(lP2.Y); pContainer.push_back(pDepth);
-				pContainer.push_back(lP2.X); pContainer.push_back(lP2.Y); pContainer.push_back(pDepth);
-				pContainer.push_back(lP3.X); pContainer.push_back(lP3.Y); pContainer.push_back(pDepth);
-				pContainer.push_back(lP0.X); pContainer.push_back(lP0.Y); pContainer.push_back(pDepth);
-			}
-		}
-
+		return GridShape::Hexagon;
 	}
-
-private:
-	uint32_t mWidth = 10;
-	uint32_t mHeight = 10;
 };
 
 Shape* GenerateHexagonsOnRectShape(Parameters& pParameters)
