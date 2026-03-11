@@ -1,6 +1,6 @@
 #include "GraphicsState.h"
 
-#include <gl/glew.h>
+#include <GL/glew.h>
 
 void GraphicsState::Init()
 {

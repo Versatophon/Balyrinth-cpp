@@ -2,6 +2,8 @@
 
 #include <GL/glew.h>
 
+#include <cstring>
+
 uint32_t Ubo::sLastUboIndex = 0;
 
 void Ubo::UpdateGpu()

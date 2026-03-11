@@ -2,6 +2,7 @@
 
 #include "../Bindable.h"
 
+#include <cstddef>//size_t
 #include <cstdint>
 
 class Buffer :public Bindable
