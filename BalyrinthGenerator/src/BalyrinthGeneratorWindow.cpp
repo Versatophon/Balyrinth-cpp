@@ -651,8 +651,8 @@ void BalyrinthGeneratorWindow::ProcessImGui()
             ImGui::Checkbox("Show Edges", &mRenderEdges);
             ImGui::Checkbox("Show Path", &mRenderPath);
 
-            lDrawParamChanged |= ImGui::DragFloat("Node Width", &mMazeGeometryParameters.NodeWidth, 0.005f, .005f, 1.1f);
-            lDrawParamChanged |= ImGui::DragFloat("Edge Width", &mMazeGeometryParameters.EdgeWidth, 0.005f, .005f, 1.1f);
+            lDrawParamChanged |= ImGui::DragFloat("Node Width", &mMazeGeometryParameters.NodeWidth, 0.005f, .005f, 1.f);
+            lDrawParamChanged |= ImGui::DragFloat("Edge Width", &mMazeGeometryParameters.EdgeWidth, 0.005f, .005f, 2.f);
 
             if (ImGui::CollapsingHeader("Colors"))
             {

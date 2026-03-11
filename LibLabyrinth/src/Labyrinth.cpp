@@ -34,6 +34,7 @@ enum class StepperState
 	WallBreak,//can be processed multiple times before going to next state, should be the only one
 	ChooseNextRoom,//newly added as clasic wallbreaker, previously added as bloom
 	Backtrack,
+	FindConnectableNode,//used in case of some node have not benn inserted in backtrack stack 
 };
 
 struct LabyrinthStepperId
@@ -291,12 +292,49 @@ struct LabyrinthStepperId
 
 				if (mFromIndex == UINT32_MAX)
 				{
-					mStepperState = StepperState::Idle;
+					mStepperState = StepperState::FindConnectableNode;
 				}
 				else
 				{
 					mStepperState = StepperState::ComputeDirection;
 				}
+				break;
+
+			case StepperState::FindConnectableNode:
+			{
+				const size_t lDirectionCount = mRoomNeighborhood->GetDirectionCount();
+
+				std::vector<uint32_t> lNextPossibleNodes;
+
+				for (uint32_t j = 0; j < mGraphColoration.size(); ++j)
+				{
+					if (mGraphColoration[j] == NOT_CONNECTED)
+					{
+						for (uint32_t i = 0; i < lDirectionCount; ++i)
+						{
+							uint32_t lNeighborIndex = mRoomNeighborhood->GetNextNode(j, i);
+							if (lNeighborIndex != INVALID_NODE_INDEX)
+							{
+								if (mGraphColoration[lNeighborIndex] != NOT_CONNECTED)
+								{
+									lNextPossibleNodes.push_back(lNeighborIndex);
+									break;
+								}
+							}
+						}
+					}	
+				}
+
+				if (lNextPossibleNodes.empty())
+				{//Should not be possible
+					mStepperState = StepperState::Idle;
+				}
+				else
+				{
+					mFromIndex = lNextPossibleNodes[mRandGen.GenerateNext() % lNextPossibleNodes.size()];
+					mStepperState = StepperState::ComputeDirection;
+				}
+			}
 				break;
 		}
 
