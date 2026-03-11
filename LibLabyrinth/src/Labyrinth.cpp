@@ -241,6 +241,7 @@ struct LabyrinthStepperId
 				break;
 			case StepperState::WallBreak:
 			{
+				//TODO: add a parameter to add in backtrack all wall breaked steps
 				uint32_t lNextIndex = mRoomNeighborhood->GetNextNode(mFromIndex, mNextDirection);
 
 				if (lNextIndex == UINT32_MAX || mGraphColoration[lNextIndex] == ALREADY_IN_SET)
