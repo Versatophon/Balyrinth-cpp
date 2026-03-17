@@ -71,9 +71,10 @@ mLabyrinthStepper(LabyrinthStepper({ RoomSelect::Last, Backtrack::Queue, Compute
 {
     mShapeGenerators = {{{"Squares On Tore", (void*)GenerateSquaresOnToreShape},
                          {"Squares On Rect", (void*)GenerateSquaresOnRectShape},
+                         {"Hexagons On Tore", (void*)GenerateHexagonsOnToreShape},
                          {"Hexagons On Rect", (void*)GenerateHexagonsOnRectShape}}};
 
-    mShapeGenerators.mSelectedIndex = 2;
+    mShapeGenerators.mSelectedIndex = 0;
 
     mNodeShapeModes = {{{"Triangle", NodeShape::Triangle},
                         {"Square", NodeShape::Square},
@@ -82,7 +83,7 @@ mLabyrinthStepper(LabyrinthStepper({ RoomSelect::Last, Backtrack::Queue, Compute
                         {"Heptagon", NodeShape::Heptagon},
                         {"Octogon", NodeShape::Octogon}}};
 
-    mNodeShapeModes.mSelectedIndex = 3;
+    mNodeShapeModes.mSelectedIndex = 1;
 
     mRoomSelectMode = {{{"Last Room Added", RoomSelect::Last},
                         {"Fill Room", RoomSelect::Fill}} };
@@ -468,9 +469,7 @@ void BalyrinthGeneratorWindow::Render()
 {
     if (mNeedToCleanGeometry)
     {
-        uint32_t lMaxVertexCount = 
-            (((mMazeGeometryParameters.Height * mMazeGeometryParameters.Width) - 1) 
-            + (mMazeGeometryParameters.Height + mMazeGeometryParameters.Width) * 2) * mMazeDrawer->GetVertexCountPerEdge();
+        uint32_t lMaxVertexCount = ((mMazeGeometryParameters.Height * mMazeGeometryParameters.Width) - 1) * mMazeDrawer->GetVertexCountPerEdge();
 
         //TODO: use a different shader instead of uploading a color index array
         mRenderableLabyrinth->SetItemCount(lMaxVertexCount);

@@ -22,6 +22,10 @@ add_library(LibLabyrinth SHARED
     src/SeededRandGen.cpp
     src/Shape.h
     src/Shape.cpp
+    src/Generators/SquaresOnRectShape.cpp
+    src/Generators/SquaresOnToreShape.cpp
+    src/Generators/HexagonsOnRectShape.cpp
+    src/Generators/HexagonsOnToreShape.cpp
 )
 
 find_path(PCG_INCLUDE_DIRS "pcg_random.hpp") # Only if no build package is required

@@ -41,8 +41,7 @@ protected:
 class EdgeShapeProvider
 {
 public:
-    EdgeShapeProvider(Shape* pShape, size_t pVertexCountPerEdge, float pEdgeWidth):
-        mShape(pShape),
+    EdgeShapeProvider(size_t pVertexCountPerEdge, float pEdgeWidth):
         mVertexCountPerEdge(pVertexCountPerEdge),
         mEdgeWidth(pEdgeWidth)
     {
@@ -53,10 +52,9 @@ public:
         return mVertexCountPerEdge;
     }
 
-    virtual void DrawEdge(std::vector<Vector3f>& pNodePositions, std::vector<float>& pContainer, uint32_t pNodeIndex0, uint32_t pNodeIndex1, float pDepth, float pLineWidth, bool pContiguousDraw) = 0;
+    virtual void DrawEdge(std::vector<float>& pContainer, uint32_t pDirection, const Vector3f& pNodePosition0, const Vector3f& pNodePosition1, float pDepth) = 0;
 
 protected:
-    Shape* mShape = nullptr;
     size_t mVertexCountPerEdge;
     float mEdgeWidth = .5f;
 };
@@ -190,119 +188,59 @@ private:
 class SquareEdgeShapeProvider:public EdgeShapeProvider
 {
 public:
-    SquareEdgeShapeProvider(Shape* pShape, float pEdgeWidth) :EdgeShapeProvider(pShape, 6, pEdgeWidth)
+    SquareEdgeShapeProvider(float pEdgeWidth) :EdgeShapeProvider(12, pEdgeWidth)
     {
     }
 
-    void DrawEdge(std::vector<Vector3f>& pNodePositions, std::vector<float>& pContainer, uint32_t pNodeIndex0, uint32_t pNodeIndex1, float pDepth, float pLineWidth, bool pContiguousDraw) override
+    void DrawEdge(std::vector<float>& pContainer, uint32_t pDirection, const Vector3f& pNodePosition0, const Vector3f& pNodePosition1, float pDepth) override
     {
-        float lLineOffset = pLineWidth / 2.f;
-        //mShape = mGeometryContainer.GetShape();//this
-        Vector3f lSpaceSize = mShape->GetSpaceSize();
-        float lHalfWidth = (1.f / 2.f) + lLineOffset;
-        Vector3i lShapeSize = mShape->GetSize();
-        
-        if (pContiguousDraw)
+        float lLineOffset = mEdgeWidth / 2.f;
+
+        Vector3f lNode0Min;
+        Vector3f lNode0Max;
+        Vector3f lNode1Min;
+        Vector3f lNode1Max;
+
+        switch (pDirection)
         {
-            const Vector3f& lNode0Position = pNodePositions[pNodeIndex0];
+        case 0:
+            lNode0Min = { pNodePosition0.X - lLineOffset, pNodePosition0.Y - lLineOffset, pDepth };
+            lNode0Max = { pNodePosition0.X + .5f, pNodePosition0.Y + lLineOffset, pDepth };
+            lNode1Min = { pNodePosition1.X - .5f, pNodePosition1.Y - lLineOffset, pDepth };
+            lNode1Max = { pNodePosition1.X + lLineOffset, pNodePosition1.Y + lLineOffset, pDepth };
+            break;
 
-            Vector3f lSpaceDelta = mShape->GetUnitSpaceDelta(pNodeIndex0, pNodeIndex1);
+        case 1:
+            lNode0Min = { pNodePosition0.X - lLineOffset, pNodePosition0.Y - lLineOffset, pDepth };
+            lNode0Max = { pNodePosition0.X + lLineOffset, pNodePosition0.Y + .5f, pDepth };
+            lNode1Min = { pNodePosition1.X - lLineOffset, pNodePosition1.Y - .5f, pDepth };
+            lNode1Max = { pNodePosition1.X + lLineOffset, pNodePosition1.Y + lLineOffset, pDepth };
+            break;
 
-            Vector3f lNodeNormalizedPos0 = mShape->GetNodeNormalizedPosition(pNodeIndex0);
-            Vector3f lNodeNormalizedPos1 = mShape->GetNodeNormalizedPosition(pNodeIndex1);
+        case 2:
+            lNode0Min = { pNodePosition0.X - 0.5f, pNodePosition0.Y - lLineOffset, pDepth };
+            lNode0Max = { pNodePosition0.X + lLineOffset, pNodePosition0.Y + lLineOffset, pDepth };
+            lNode1Min = { pNodePosition1.X - lLineOffset, pNodePosition1.Y - lLineOffset, pDepth };
+            lNode1Max = { pNodePosition1.X + 0.5f, pNodePosition1.Y + lLineOffset, pDepth };
+            break;
 
-            Vector3f lInitialNode0Position = { lNodeNormalizedPos0.X, lNodeNormalizedPos0.Y, 0 };
-
-            //Since the space delta is from node 0 to node 1, we need to compensate it with opposited delta
-            Vector3f lInitialNode1Position = { (lNodeNormalizedPos1.X - lSpaceDelta.X * lSpaceSize.X),
-                                               (lNodeNormalizedPos1.Y - lSpaceDelta.Y * lSpaceSize.Y), 0 };
-
-            Vector3f lNode1Position = lNode0Position + (lInitialNode1Position - lInitialNode0Position);
-
-            pNodePositions[pNodeIndex1] = lNode1Position;
-
-            Vector3f lMin{ std::min(lNode0Position.X, lNode1Position.X) - lLineOffset, std::min(lNode0Position.Y, lNode1Position.Y) - lLineOffset, pDepth };
-            Vector3f lMax{ std::max(lNode0Position.X, lNode1Position.X) + lLineOffset, std::max(lNode0Position.Y, lNode1Position.Y) + lLineOffset, pDepth };
-            AddAARect(pContainer, lMin, lMax);
+        case 3:
+            lNode0Min = { pNodePosition0.X - lLineOffset, pNodePosition0.Y - .5f, pDepth };
+            lNode0Max = { pNodePosition0.X + lLineOffset, pNodePosition0.Y + lLineOffset, pDepth };
+            lNode1Min = { pNodePosition1.X - lLineOffset, pNodePosition1.Y - lLineOffset, pDepth };
+            lNode1Max = { pNodePosition1.X + lLineOffset, pNodePosition1.Y + .5f, pDepth };
+            break;
         }
-        else
-        {
-            const Vector3f& lNode0Position = pNodePositions[pNodeIndex0];
-            const Vector3f& lNode1Position = pNodePositions[pNodeIndex1];
 
-            Vector3f lSpaceDelta = mShape->GetUnitSpaceDelta(pNodeIndex0, pNodeIndex1);
-
-            if ((abs(lSpaceDelta.X) + abs(lSpaceDelta.Y) + abs(lSpaceDelta.Z)) == 0)
-            {
-                Vector3f lMin{ std::min(lNode0Position.X, lNode1Position.X) - lLineOffset, std::min(lNode0Position.Y, lNode1Position.Y) - lLineOffset, pDepth };
-                Vector3f lMax{ std::max(lNode0Position.X, lNode1Position.X) + lLineOffset, std::max(lNode0Position.Y, lNode1Position.Y) + lLineOffset, pDepth };
-                AddAARect(pContainer, lMin, lMax);
-            }
-            else if (lSpaceDelta.X < 0 && true)
-            {
-                Vector3f lNodeNormalizedPos1 = mShape->GetNodeNormalizedPosition(pNodeIndex1);
-                Vector3f lVirtualalNode0Position = { (-lSpaceDelta.X * lSpaceSize.X + lNodeNormalizedPos1.X),
-                                                     (-lSpaceDelta.Y * lSpaceSize.Y + lNodeNormalizedPos1.Y), 0 };
-
-
-                Vector3f lMin{ lNode0Position.X - lLineOffset, lNode0Position.Y - lLineOffset, pDepth };
-                Vector3f lMax{ lMin.X + lHalfWidth, lVirtualalNode0Position.Y + lLineOffset, pDepth };
-                AddAARect(pContainer, lMin, lMax);
-
-                lMin.X -= lShapeSize.X - lHalfWidth;
-                lMax.X -= lShapeSize.X - lHalfWidth;
-                AddAARect(pContainer, lMin, lMax);
-            }
-            else if (lSpaceDelta.X > 0 && true)
-            {
-                Vector3f lNodeNormalizedPos1 = mShape->GetNodeNormalizedPosition(pNodeIndex1);
-                Vector3f lVirtualNode0Position = { -lSpaceDelta.X * lSpaceSize.X + lNodeNormalizedPos1.X,
-                                               -lSpaceDelta.Y * lSpaceSize.Y + lNodeNormalizedPos1.Y, 0 };
-
-                Vector3f lMax{ lNode0Position.X + lLineOffset, lNode0Position.Y + lLineOffset, pDepth };
-                Vector3f lMin{ (lMax.X + lVirtualNode0Position.X - lLineOffset) / 2, lVirtualNode0Position.Y - lLineOffset, pDepth };
-                AddAARect(pContainer, lMin, lMax);
-
-                lMin.X += lShapeSize.X - lHalfWidth;
-                lMax.X += lShapeSize.X - lHalfWidth;
-                AddAARect(pContainer, lMin, lMax);
-            }
-            else if (lSpaceDelta.Y < 0 && true)
-            {
-                Vector3f lNodeNormalizedPos1 = mShape->GetNodeNormalizedPosition(pNodeIndex1);
-                Vector3f lVirtualalNode0Position = { -lSpaceDelta.X * lSpaceSize.X + lNodeNormalizedPos1.X,
-                                                     -lSpaceDelta.Y * lSpaceSize.Y + lNodeNormalizedPos1.Y, 0 };
-
-                Vector3f lMin{ lNode0Position.X - lLineOffset, lNode0Position.Y - lLineOffset, pDepth };
-                Vector3f lMax{ lVirtualalNode0Position.X + lLineOffset, (lMin.Y + lVirtualalNode0Position.Y + lLineOffset) / 2, pDepth };
-                AddAARect(pContainer, lMin, lMax);
-
-                lMin.Y -= lShapeSize.Y - lHalfWidth;
-                lMax.Y -= lShapeSize.Y - lHalfWidth;
-                AddAARect(pContainer, lMin, lMax);
-            }
-            else if (lSpaceDelta.Y > 0 && true)
-            {
-                Vector3f lNodeNormalizedPos1 = mShape->GetNodeNormalizedPosition(pNodeIndex1);
-                Vector3f lVirtualNode0Position = { -lSpaceDelta.X * lSpaceSize.X + lNodeNormalizedPos1.X,
-                                                   -lSpaceDelta.Y * lSpaceSize.Y + lNodeNormalizedPos1.Y, 0 };
-
-                Vector3f lMax{ lNode0Position.X + lLineOffset, lNode0Position.Y + lLineOffset, pDepth };
-                Vector3f lMin{ lVirtualNode0Position.X - lLineOffset, (lMax.Y + lVirtualNode0Position.Y - lLineOffset) / 2, pDepth };
-                AddAARect(pContainer, lMin, lMax);
-
-                lMin.Y += lShapeSize.Y - lHalfWidth;
-                lMax.Y += lShapeSize.Y - lHalfWidth;
-                AddAARect(pContainer, lMin, lMax);
-            }
-        }
+        AddAARect(pContainer, lNode0Min, lNode0Max);
+        AddAARect(pContainer, lNode1Min, lNode1Max);
     }
 };
 
 class HexagonEdgeShapeProvider:public EdgeShapeProvider
 {
 public:
-    HexagonEdgeShapeProvider(Shape* pShape, float pEdgeWidth):EdgeShapeProvider(pShape, 12, pEdgeWidth),
+    HexagonEdgeShapeProvider(float pEdgeWidth):EdgeShapeProvider(18, pEdgeWidth),
         mP0((pEdgeWidth / 3.f)* (P50 + P01)),
         mP1((pEdgeWidth / 3.f)* (P01 + P12)),
         mP2((pEdgeWidth / 3.f)* (P12 + P23)),
@@ -310,97 +248,154 @@ public:
         mP4((pEdgeWidth / 3.f)* (P34 + P45)),
         mP5((pEdgeWidth / 3.f)* (P45 + P50))
     {
+        //     mP2 mP1
+        // mP3         mP0
+        //     mP4 mP5
+
+        mMid0_0 = (mP4 + mP5 + Vector3f{ SQRT3, 0, 0 }) / 2.f;
+        mMid0_1 = (mP2 + mP1 + Vector3f{ SQRT3, 0, 0 }) / 2.f;
+
+        mMid1_0 = (mP5 + mP0 + Vector3f{ SQRT3BY2, 1.5f, 0 }) / 2.f;
+        mMid1_1 = (mP3 + mP2 + Vector3f{ SQRT3BY2, 1.5f, 0 }) / 2.f;
+
+        mMid2_0 = (mP0 + mP1 + Vector3f{ -SQRT3BY2, 1.5f, 0 }) / 2.f;
+        mMid2_1 = (mP4 + mP3 + Vector3f{ -SQRT3BY2, 1.5f, 0 }) / 2.f;
+
+        mMid3_0 = (mP1 + mP2 + Vector3f{ -SQRT3, 0, 0 }) / 2.f;
+        mMid3_1 = (mP5 + mP4 + Vector3f{ -SQRT3, 0, 0 }) / 2.f;
+
+        mMid4_0 = (mP2 + mP3 + Vector3f{ -SQRT3BY2, -1.5f, 0 }) / 2.f;
+        mMid4_1 = (mP0 + mP5 + Vector3f{ -SQRT3BY2, -1.5f, 0 }) / 2.f;
+
+        mMid5_0 = (mP3 + mP4 + Vector3f{ SQRT3BY2, -1.5f, 0 }) / 2.f;
+        mMid5_1 = (mP1 + mP0 + Vector3f{ SQRT3BY2, -1.5f, 0 }) / 2.f;
     }
 
-    void DrawEdge(std::vector<Vector3f>& pNodePositions, std::vector<float>& pContainer, uint32_t pNodeIndex0, uint32_t pNodeIndex1, float pDepth, float pLineWidth, bool pContiguousDraw) override
+    void DrawEdge(std::vector<float>& pContainer, uint32_t pDirection, const Vector3f& pNodePosition0, const Vector3f& pNodePosition1, float pDepth) override
     {
-        float lLineOffset = pLineWidth / 2.f;
-        Vector3f lSpaceSize = mShape->GetSpaceSize();
-        float lHalfWidth = (1.f / 2.f) + lLineOffset;
+        Vector3f lP0_0;
+        Vector3f lP0_1;
+        Vector3f lP0_2;
+        Vector3f lP0_3;
+        Vector3f lP0_4;
 
-        uint32_t lDirection = mShape->GetRoomNeighborhood()->GetDirection(pNodeIndex0, pNodeIndex1);
+        Vector3f lP1_0;
+        Vector3f lP1_1;
+        Vector3f lP1_2;
+        Vector3f lP1_3;
+        Vector3f lP1_4;
 
-        //if (pContiguousDraw)
+        //       lP0_3 lP0_2  lP1_4 lP1_3
+        //lP0_4                            lP1_2
+        //       lP0_0 lP0_1  lP1_0 lP1_1
+
+        switch (pDirection)
         {
-            const Vector3f& lNode0Position = pNodePositions[pNodeIndex0];
-            const Vector3f& lNode1Position = pNodePositions[pNodeIndex1];
+        case 0:
+            lP0_0 = pNodePosition0 + mP4;
+            lP0_1 = pNodePosition0 + mMid0_0;
+            lP0_2 = pNodePosition0 + mMid0_1;
+            lP0_3 = pNodePosition0 + mP2;
+            lP0_4 = pNodePosition0 + mP3;
 
-            Vector3f lP0;
-            Vector3f lP1;
-            Vector3f lP2;
-            Vector3f lP3;
-            Vector3f lP4;
-            Vector3f lP5;
+            lP1_0 = pNodePosition1 + mMid3_1;
+            lP1_1 = pNodePosition1 + mP5;
+            lP1_2 = pNodePosition1 + mP0;
+            lP1_3 = pNodePosition1 + mP1;
+            lP1_4 = pNodePosition1 + mMid3_0;
+            break;
+        case 1:
+            lP0_0 = pNodePosition0 + mP5;
+            lP0_1 = pNodePosition0 + mMid1_0;
+            lP0_2 = pNodePosition0 + mMid1_1;
+            lP0_3 = pNodePosition0 + mP3;
+            lP0_4 = pNodePosition0 + mP4;
 
-            float lMultiplier = pLineWidth * TWOBYSQRT3;
+            lP1_0 = pNodePosition1 + mMid4_1;
+            lP1_1 = pNodePosition1 + mP0;
+            lP1_2 = pNodePosition1 + mP1;
+            lP1_3 = pNodePosition1 + mP2;
+            lP1_4 = pNodePosition1 + mMid4_0;
+            break;
+        case 2:
+            lP0_0 = pNodePosition0 + mP0;
+            lP0_1 = pNodePosition0 + mMid2_0;
+            lP0_2 = pNodePosition0 + mMid2_1;
+            lP0_3 = pNodePosition0 + mP4;
+            lP0_4 = pNodePosition0 + mP5;
 
-            switch (lDirection)
-            {
-            case 0:
-                lP0 = lNode0Position + mP4;
-                lP1 = lNode1Position + mP5;
-                lP2 = lNode1Position + mP1;
-                lP3 = lNode0Position + mP2;
-                lP4 = lNode1Position + mP0;
-                lP5 = lNode0Position + mP3;
-                break;
-            case 1:
-                lP0 = lNode0Position + mP5;
-                lP1 = lNode1Position + mP0;
-                lP2 = lNode1Position + mP2;
-                lP3 = lNode0Position + mP3;
-                lP4 = lNode1Position + mP1;
-                lP5 = lNode0Position + mP4;
-                break;
-            case 2:
-                lP0 = lNode0Position + mP0;
-                lP1 = lNode1Position + mP1;
-                lP2 = lNode1Position + mP3;
-                lP3 = lNode0Position + mP4;
-                lP4 = lNode1Position + mP2;
-                lP5 = lNode0Position + mP5;
-                break;
-            case 3:
-                lP0 = lNode0Position + mP1;
-                lP1 = lNode1Position + mP2;
-                lP2 = lNode1Position + mP4;
-                lP3 = lNode0Position + mP5;
-                lP4 = lNode1Position + mP3;
-                lP5 = lNode0Position + mP0;
-                break;
-            case 4:
-                lP0 = lNode0Position + mP2;
-                lP1 = lNode1Position + mP3;
-                lP2 = lNode1Position + mP5;
-                lP3 = lNode0Position + mP0;
-                lP4 = lNode1Position + mP4;
-                lP5 = lNode0Position + mP1;
-                break;
-            case 5:
-                lP0 = lNode0Position + mP3;
-                lP1 = lNode1Position + mP4;
-                lP2 = lNode1Position + mP0;
-                lP3 = lNode0Position + mP1;
-                lP4 = lNode1Position + mP5;
-                lP5 = lNode0Position + mP2;
-                break;
-            }
+            lP1_0 = pNodePosition1 + mMid5_1;
+            lP1_1 = pNodePosition1 + mP1;
+            lP1_2 = pNodePosition1 + mP2;
+            lP1_3 = pNodePosition1 + mP3;
+            lP1_4 = pNodePosition1 + mMid5_0;
+            break;
+        case 3:
+            lP0_0 = pNodePosition0 + mP1;
+            lP0_1 = pNodePosition0 + mMid3_0;
+            lP0_2 = pNodePosition0 + mMid3_1;
+            lP0_3 = pNodePosition0 + mP5;
+            lP0_4 = pNodePosition0 + mP0;
 
-            pContainer.push_back(lP0.X); pContainer.push_back(lP0.Y); pContainer.push_back(pDepth);
-            pContainer.push_back(lP1.X); pContainer.push_back(lP1.Y); pContainer.push_back(pDepth);
-            pContainer.push_back(lP2.X); pContainer.push_back(lP2.Y); pContainer.push_back(pDepth);
-            pContainer.push_back(lP2.X); pContainer.push_back(lP2.Y); pContainer.push_back(pDepth);
-            pContainer.push_back(lP3.X); pContainer.push_back(lP3.Y); pContainer.push_back(pDepth);
-            pContainer.push_back(lP0.X); pContainer.push_back(lP0.Y); pContainer.push_back(pDepth);
-      
-            pContainer.push_back(lP2.X); pContainer.push_back(lP2.Y); pContainer.push_back(pDepth);
-            pContainer.push_back(lP1.X); pContainer.push_back(lP1.Y); pContainer.push_back(pDepth);
-            pContainer.push_back(lP4.X); pContainer.push_back(lP4.Y); pContainer.push_back(pDepth);
-            pContainer.push_back(lP0.X); pContainer.push_back(lP0.Y); pContainer.push_back(pDepth);
-            pContainer.push_back(lP3.X); pContainer.push_back(lP3.Y); pContainer.push_back(pDepth);
-            pContainer.push_back(lP5.X); pContainer.push_back(lP5.Y); pContainer.push_back(pDepth);
+            lP1_0 = pNodePosition1 + mMid0_1;
+            lP1_1 = pNodePosition1 + mP2;
+            lP1_2 = pNodePosition1 + mP3;
+            lP1_3 = pNodePosition1 + mP4;
+            lP1_4 = pNodePosition1 + mMid0_0;
+            break;
+        case 4:
+            lP0_0 = pNodePosition0 + mP2;
+            lP0_1 = pNodePosition0 + mMid4_0;
+            lP0_2 = pNodePosition0 + mMid4_1;
+            lP0_3 = pNodePosition0 + mP0;
+            lP0_4 = pNodePosition0 + mP1;
+
+            lP1_0 = pNodePosition1 + mMid1_1;
+            lP1_1 = pNodePosition1 + mP3;
+            lP1_2 = pNodePosition1 + mP4;
+            lP1_3 = pNodePosition1 + mP5;
+            lP1_4 = pNodePosition1 + mMid1_0;
+            break;
+        case 5:
+            lP0_0 = pNodePosition0 + mP3;
+            lP0_1 = pNodePosition0 + mMid5_0;
+            lP0_2 = pNodePosition0 + mMid5_1;
+            lP0_3 = pNodePosition0 + mP1;
+            lP0_4 = pNodePosition0 + mP2;
+
+            lP1_0 = pNodePosition1 + mMid2_1;
+            lP1_1 = pNodePosition1 + mP4;
+            lP1_2 = pNodePosition1 + mP5;
+            lP1_3 = pNodePosition1 + mP0;
+            lP1_4 = pNodePosition1 + mMid2_0;
+            break;
         }
+
+        pContainer.push_back(lP0_3.X); pContainer.push_back(lP0_3.Y); pContainer.push_back(pDepth);
+        pContainer.push_back(lP0_4.X); pContainer.push_back(lP0_4.Y); pContainer.push_back(pDepth);
+        pContainer.push_back(lP0_0.X); pContainer.push_back(lP0_0.Y); pContainer.push_back(pDepth);
+
+        pContainer.push_back(lP0_0.X); pContainer.push_back(lP0_0.Y); pContainer.push_back(pDepth);
+        pContainer.push_back(lP0_1.X); pContainer.push_back(lP0_1.Y); pContainer.push_back(pDepth);
+        pContainer.push_back(lP0_2.X); pContainer.push_back(lP0_2.Y); pContainer.push_back(pDepth);
+
+        pContainer.push_back(lP0_2.X); pContainer.push_back(lP0_2.Y); pContainer.push_back(pDepth);
+        pContainer.push_back(lP0_3.X); pContainer.push_back(lP0_3.Y); pContainer.push_back(pDepth);
+        pContainer.push_back(lP0_0.X); pContainer.push_back(lP0_0.Y); pContainer.push_back(pDepth);
+
+        pContainer.push_back(lP1_3.X); pContainer.push_back(lP1_3.Y); pContainer.push_back(pDepth);
+        pContainer.push_back(lP1_4.X); pContainer.push_back(lP1_4.Y); pContainer.push_back(pDepth);
+        pContainer.push_back(lP1_0.X); pContainer.push_back(lP1_0.Y); pContainer.push_back(pDepth);
+
+        pContainer.push_back(lP1_0.X); pContainer.push_back(lP1_0.Y); pContainer.push_back(pDepth);
+        pContainer.push_back(lP1_1.X); pContainer.push_back(lP1_1.Y); pContainer.push_back(pDepth);
+        pContainer.push_back(lP1_3.X); pContainer.push_back(lP1_3.Y); pContainer.push_back(pDepth);
+
+        pContainer.push_back(lP1_3.X); pContainer.push_back(lP1_3.Y); pContainer.push_back(pDepth);
+        pContainer.push_back(lP1_1.X); pContainer.push_back(lP1_1.Y); pContainer.push_back(pDepth);
+        pContainer.push_back(lP1_2.X); pContainer.push_back(lP1_2.Y); pContainer.push_back(pDepth);
     }
+
 private:
     Vector3f mP0;
     Vector3f mP1;
@@ -408,6 +403,25 @@ private:
     Vector3f mP3;
     Vector3f mP4;
     Vector3f mP5;
+
+    Vector3f mMid0_0;
+    Vector3f mMid0_1;
+
+    Vector3f mMid1_0;
+    Vector3f mMid1_1;
+
+    Vector3f mMid2_0;
+    Vector3f mMid2_1;
+
+    Vector3f mMid3_0;
+    Vector3f mMid3_1;
+
+    Vector3f mMid4_0;
+    Vector3f mMid4_1;
+
+    Vector3f mMid5_0;
+    Vector3f mMid5_1;
+
 };
 #endif
 
@@ -473,7 +487,7 @@ void MazeDrawer::AddFirstNode(uint32_t pNodeIndex)
     {
         for (size_t i = 0; i < mMazeGeometryParameters.Width; ++i)
         {
-            mNodePositions[j * mMazeGeometryParameters.Width + i] = mShape->GetNodeNormalizedPosition(j * mMazeGeometryParameters.Width + i);// Vector2f{ float(i), float(j) };
+            mNodePositions[j * mMazeGeometryParameters.Width + i] = mShape->GetNodeNormalizedPosition(j * mMazeGeometryParameters.Width + i);
         }
     }
 
@@ -518,11 +532,11 @@ void MazeDrawer::InitStaticVariables()
         switch (mShape->GetGridShape())
         {
         case GridShape::Square:
-            mEdgeShapeProvider = new SquareEdgeShapeProvider(mShape, mMazeGeometryParameters.EdgeWidth);
+            mEdgeShapeProvider = new SquareEdgeShapeProvider(mMazeGeometryParameters.EdgeWidth);
             break;
 
         case GridShape::Hexagon:
-            mEdgeShapeProvider = new HexagonEdgeShapeProvider(mShape, mMazeGeometryParameters.EdgeWidth);
+            mEdgeShapeProvider = new HexagonEdgeShapeProvider(mMazeGeometryParameters.EdgeWidth);
             break;
 
         default:
@@ -547,7 +561,28 @@ void MazeDrawer::DrawNode(uint32_t pIndex, bool pInit)
 
 void MazeDrawer::DrawEdge(std::vector<float>& pContainer, uint32_t pNodeIndex0, uint32_t pNodeIndex1, float pDepth)
 {
+    const Vector3f& lNode0Position = mNodePositions[pNodeIndex0];
+    Vector3f& lNode1Position = mNodePositions[pNodeIndex1];
+    uint32_t lDirection = mShape->GetRoomNeighborhood()->GetDirection(pNodeIndex0, pNodeIndex1);
+
+    if (mParameters.ContiguousDraw)
+    {
+        Vector3f lSpaceSize = mShape->GetSpaceSize();
+        
+        Vector3f lSpaceDelta = mShape->GetUnitSpaceDelta(pNodeIndex0, pNodeIndex1);
+
+        Vector3f lNodeNormalizedPos0 = mShape->GetNodeNormalizedPosition(pNodeIndex0);
+        Vector3f lNodeNormalizedPos1 = mShape->GetNodeNormalizedPosition(pNodeIndex1);
+
+        Vector3f lInitialNode0Position = { lNodeNormalizedPos0.X, lNodeNormalizedPos0.Y, 0 };
+
+        //Since the space delta is from node 0 to node 1, we need to compensate it with opposited delta
+        Vector3f lInitialNode1Position = { (lNodeNormalizedPos1.X - lSpaceDelta.X * lSpaceSize.X),
+                                           (lNodeNormalizedPos1.Y - lSpaceDelta.Y * lSpaceSize.Y), 0 };
+
+        lNode1Position = lNode0Position + (lInitialNode1Position - lInitialNode0Position);
+    }
+    
     //TODO: draw edge from provider
-    //mShape->DrawEdge(mNodePositions, pContainer, pNodeIndex0, pNodeIndex1, pDepth, mMazeGeometryParameters.LineWidth, mParameters.ContiguousDraw);
-    mEdgeShapeProvider->DrawEdge(mNodePositions, pContainer, pNodeIndex0, pNodeIndex1, pDepth, mMazeGeometryParameters.EdgeWidth, mParameters.ContiguousDraw);
+    mEdgeShapeProvider->DrawEdge(pContainer, lDirection, lNode0Position, lNode1Position, pDepth);
 }

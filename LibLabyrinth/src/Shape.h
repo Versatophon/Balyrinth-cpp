@@ -76,3 +76,4 @@ typedef Shape* (ShapeGenerator)(Parameters& pParameters);
 LABYRINTH_API Shape* GenerateSquaresOnRectShape(Parameters& pParameters);
 LABYRINTH_API Shape* GenerateSquaresOnToreShape(Parameters& pParameters);
 LABYRINTH_API Shape* GenerateHexagonsOnRectShape(Parameters& pParameters);
+LABYRINTH_API Shape* GenerateHexagonsOnToreShape(Parameters& pParameters);
