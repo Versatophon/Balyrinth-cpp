@@ -9,6 +9,8 @@
 
 struct IndexProvider
 {
+	inline virtual ~IndexProvider() {};
+
 	//push index to container
 	virtual void InsertIndex(uint32_t pIndex) = 0;
 

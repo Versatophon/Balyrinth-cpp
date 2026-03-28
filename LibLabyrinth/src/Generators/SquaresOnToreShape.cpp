@@ -111,6 +111,8 @@ public:
 				return pIndexFrom + (mHeight - 1) * mWidth;
 			}
 			break;
+		default:
+			break;
 		}
 		return UINT32_MAX;
 	}

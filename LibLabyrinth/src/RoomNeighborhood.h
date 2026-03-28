@@ -5,6 +5,8 @@
 class RoomNeighborhood
 {
 public:
+	inline virtual ~RoomNeighborhood() {};
+
 	virtual uint32_t GetDirectionCount() const = 0;
 	//can be undetermined for Triangle rooms, return 
 	virtual uint32_t GetDirection(uint32_t pIndexFrom, uint32_t pIndexTo) const = 0;

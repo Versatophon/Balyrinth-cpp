@@ -1,13 +1,18 @@
 #include "ManagedWindow.h"
 
+#ifdef __EMSCRIPTEN__
+#include <GLES3/gl3.h>
+#else
 #ifdef WIN32
 #include <Windows.h>
 #endif
-
 #include <GL/gl.h>
+#endif
 
 #define SDL_MAIN_USE_CALLBACKS 1/* use the callbacks instead of main() */
+#ifndef __EMSCRIPTEN__
 #define SDL_MAIN_HANDLED 1/* as we define our own main entry point, we need to define this macro */
+#endif
 
 extern "C" {
 #include <SDL3/SDL.h>
@@ -130,6 +135,12 @@ struct ManagedWindowID
     {
         Window->InternalQuit();
         GeometrySettings.Save("WinGeometry.settings");
+
+        ImGui_ImplSDL3_Shutdown();
+        ImGui_ImplOpenGL3_Shutdown();
+
+        SDL_DestroyWindow(SdlWindow);
+        SDL_Quit();
     }
 };
 
@@ -161,6 +172,16 @@ ManagedWindow::~ManagedWindow()
     delete mID;
 }
 
+ManagedWindowID* ManagedWindow::GetManagedWindowID()
+{
+    return mID;
+}
+
+uint32_t ManagedWindow::StaticInit()
+{
+    return mID->Init();
+}
+
 SDL_Window* ManagedWindow::GetSdlWindow()
 {
     return mID->SdlWindow;
@@ -168,8 +189,12 @@ SDL_Window* ManagedWindow::GetSdlWindow()
 
 int32_t ManagedWindow::Execute()
 {
+#ifdef __EMSCRIPTEN__
+    return -1;
+#else
     char* lArgV [1] = {(char*)this->mID};
     return SDL_EnterAppMainCallbacks(1, lArgV, AppInit, AppIterate, AppEvent, AppQuit);
+#endif
 }
 
 int32_t ManagedWindow::Init()
@@ -232,10 +257,17 @@ int32_t ManagedWindow::InternalInit()
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
 
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
+#ifdef __EMSCRIPTEN__
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+#else
     //Use OpenGL 3.1 core
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+#endif
 
     mID->GeometrySettings.Load("WinGeometry.settings");
 
@@ -282,7 +314,13 @@ int32_t ManagedWindow::InternalInit()
 
     // Setup Platform/Renderer backends
     ImGui_ImplSDL3_InitForOpenGL(mID->SdlWindow, mID->SdlGlContext);
-    ImGui_ImplOpenGL3_Init("#version 130");
+
+#ifdef __EMSCRIPTEN__
+    ImGui_ImplOpenGL3_Init("#version 300 es");
+#else
+    ImGui_ImplOpenGL3_Init("#version 330");
+#endif
+    //ImGui_ImplOpenGL3_Init("#version 130");
 
     return Init();
 }
@@ -350,34 +388,63 @@ void ManagedWindow::InternalQuit()
     Quit();
 }
 
+#ifdef __EMSCRIPTEN__
+
+#include "BalyrinthGeneratorWindow.h"
+static BalyrinthGeneratorWindow sWindow;
+
+SDL_AppResult SDL_AppInit(void** pAppState, int pArgC, char** pArgV)
+{
+    *pAppState = sWindow.GetManagedWindowID();
+    return (SDL_AppResult)sWindow.StaticInit();
+}
+
+#else
 /* This function runs once at startup. */
+//static BalyrinthGeneratorWindow sWindow;
+//
+//SDL_AppResult SDL_AppInit(void** pAppState, int pArgC, char** pArgV)
+//{
+//    *pAppState = sWindow.mID;
+//    return (SDL_AppResult)((ManagedWindowID*)(*pAppState))->Init();
+//}
+//#else
 SDL_AppResult AppInit(void** pAppState, int pArgC, char** pArgV)
 {
+    SDL_Log("InternalInit start");
     *pAppState = pArgV[0];
     return (SDL_AppResult)((ManagedWindowID*)(*pAppState))->Init();
 }
+#endif
+
 
 /* This function runs when a new event (mouse input, keypresses, etc) occurs. */
+#ifdef __EMSCRIPTEN__
+SDL_AppResult SDL_AppEvent(void* pAppState, SDL_Event *pEvent)
+#else
 SDL_AppResult AppEvent(void* pAppState, SDL_Event *pEvent)
+#endif
 {
      return (SDL_AppResult)((ManagedWindowID*)pAppState)->Event(pEvent);
 }
 
 /* This function runs once per frame, and is the heart of the program. */
+#ifdef __EMSCRIPTEN__
+SDL_AppResult SDL_AppIterate(void *pAppState)
+#else
 SDL_AppResult AppIterate(void *pAppState)
+#endif
 {
     return (SDL_AppResult)((ManagedWindowID*)pAppState)->Iterate();
 }
 
 /* This function runs once at shutdown. */
+#ifdef __EMSCRIPTEN__
+void SDL_AppQuit(void *pAppState, SDL_AppResult pResult)
+#else
 void AppQuit(void *pAppState, SDL_AppResult pResult)
+#endif
 {
     ManagedWindowID* lWindowId = ((ManagedWindowID*)pAppState);
     lWindowId->Quit();
-
-    ImGui_ImplSDL3_Shutdown();
-    ImGui_ImplOpenGL3_Shutdown();
-
-    SDL_DestroyWindow(lWindowId->SdlWindow);
-    SDL_Quit();
 }

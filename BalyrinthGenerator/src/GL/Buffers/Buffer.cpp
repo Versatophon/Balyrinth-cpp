@@ -71,6 +71,7 @@ void Buffer::Upload(size_t pSize, void* pData)
 
 void Buffer::PartialUpload(size_t pOffset, size_t pSize, const void* pData)
 {
+    //std::cout << "partial upload " << pSize << std::endl;
     Bind();
     glBufferSubData(mTarget, pOffset, pSize, pData);
     Unbind();

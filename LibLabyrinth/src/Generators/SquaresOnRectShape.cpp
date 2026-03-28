@@ -99,6 +99,8 @@ public:
 				return pIndexFrom - mWidth;
 			}
 			break;
+		default:
+			break;
 		}
 		return UINT32_MAX;
 	}

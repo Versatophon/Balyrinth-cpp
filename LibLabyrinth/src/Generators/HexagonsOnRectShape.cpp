@@ -159,9 +159,9 @@ public:
 
 		Vector2i lSize{ mSize.X, mSize.Y };
 
-		for (size_t j = 0; j < mSize.Y; ++j)
+		for (int32_t j = 0; j < mSize.Y; ++j)
 		{
-			for (size_t i = 0; i < mSize.X; ++i)
+			for (int32_t i = 0; i < mSize.X; ++i)
 			{
 				Vector2i lInArrayCoordinates{ i,j };
 				Vector2i lHexagonalCoordinates = ToHexagonalCoordinates(lInArrayCoordinates);

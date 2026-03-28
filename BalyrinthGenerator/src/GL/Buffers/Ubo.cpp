@@ -9,12 +9,16 @@ uint32_t Ubo::sLastUboIndex = 0;
 void Ubo::UpdateGpu()
 {
     Bind();
+#if 1
+    glBufferSubData(mTarget, 0, mSize, mMemory);
+#else
     GLvoid* lDestMemory = glMapBuffer(mTarget, GL_WRITE_ONLY);//mappable ?
     if (lDestMemory != nullptr)
     {
         memcpy(lDestMemory, mMemory, mSize);
     }
     glUnmapBuffer(mTarget);
+#endif
     Unbind();
 }
 

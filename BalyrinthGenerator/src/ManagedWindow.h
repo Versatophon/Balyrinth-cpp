@@ -15,6 +15,9 @@ public:
     ManagedWindow(int32_t pArgC, char** pArgV);
     virtual ~ManagedWindow();
 
+    ManagedWindowID* GetManagedWindowID();
+    uint32_t StaticInit();
+
     int32_t Execute();
 
     SDL_Window* GetSdlWindow() override;

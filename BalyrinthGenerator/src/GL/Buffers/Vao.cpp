@@ -32,13 +32,21 @@ void Vao::ConfigureArrayBuffers(ShaderProgram* pShaderProgram, ArrayBuffer** pAr
         switch (pShaderProgram->GetAttributeType(i))
         {
         case AttributeType::Float:
-            glVertexAttribPointer(pShaderProgram->GetAttribute(i), 3, GL_FLOAT, false, 3 * sizeof(GLfloat), 0);
+            glVertexAttribPointer(pShaderProgram->GetAttribute(i), 3, GL_FLOAT, false, 3 * sizeof(GLfloat), (void*)0);
             break;
         case AttributeType::Integer:
-            glVertexAttribIPointer(pShaderProgram->GetAttribute(i), 1, GL_UNSIGNED_BYTE, 1 * sizeof(GLubyte), 0);
+#ifdef __EMSCRIPTEN__
+            glVertexAttribPointer(pShaderProgram->GetAttribute(i), 1, GL_UNSIGNED_BYTE, false, 1 * sizeof(GLubyte), (void*)0);
+#else
+            glVertexAttribIPointer(pShaderProgram->GetAttribute(i), 1, GL_UNSIGNED_BYTE, 1 * sizeof(GLubyte), (void*)0);
+#endif
             break;
+#ifndef __EMSCRIPTEN__
         case AttributeType::Double:
-            glVertexAttribIPointer(pShaderProgram->GetAttribute(i), 1, GL_DOUBLE, 1 * sizeof(GLdouble), 0);
+            glVertexAttribLPointer(pShaderProgram->GetAttribute(i), 1, GL_DOUBLE, 1 * sizeof(GLdouble), (void*)0);
+            break;
+#endif
+        default:
             break;
         }
         pArrayBuffers[i]->Unbind();

@@ -30,8 +30,12 @@ void Renderable::Draw() const
     {
         lSizeToDraw = std::min(lSizeToDraw, mCurrentPositionInBuffer[i]);
     }
-    Binder lVaoBinder(*mVertexArrayObject);
-    glDrawArrays(GL_TRIANGLES, 0, lSizeToDraw);
+
+    if (lSizeToDraw > 0)
+    {
+        Binder lVaoBinder(*mVertexArrayObject);
+        glDrawArrays(GL_TRIANGLES, 0, lSizeToDraw);
+    }
 }
 
 void Renderable::SetItemCount(size_t pItemCount)
@@ -52,7 +56,7 @@ void Renderable::Append(size_t pBufferIndex, size_t pItemCount, void* pBuffer)
 void Renderable::Update(size_t pBufferIndex, size_t pBeginIndex, size_t pItemCount, void* pBuffer)
 {
     mArrayBuffers[pBufferIndex]->PartialUpload(pBeginIndex * mArrayItemSize[pBufferIndex], pItemCount * mArrayItemSize[pBufferIndex], pBuffer);
-    mCurrentPositionInBuffer[pBufferIndex] = std::max((pBeginIndex+ pItemCount)*mArrayItemSize[pBufferIndex], mCurrentPositionInBuffer[pBufferIndex]);
+    mCurrentPositionInBuffer[pBufferIndex] = std::max((pBeginIndex+ pItemCount)/**mArrayItemSize[pBufferIndex]*/, mCurrentPositionInBuffer[pBufferIndex]);
 }
 
 size_t Renderable::GetVertexCount() const

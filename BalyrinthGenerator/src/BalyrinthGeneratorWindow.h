@@ -98,8 +98,8 @@ protected:
 private:
     bool mIsControlWindowVisible = true;
 
-    size_t mMin = 1;
-    size_t mMax = 300;
+    //size_t mMin = 1;
+    //size_t mMax = 300;
 
     MazeGeometryParameters mMazeGeometryParameters;
 

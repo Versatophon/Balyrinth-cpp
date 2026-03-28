@@ -1,12 +1,13 @@
 cmake_minimum_required(VERSION 3.25)
-project(LibLabyrinth VERSION 0.1.0 LANGUAGES CXX)
+
+set(ProjectName "LibLabyrinth")
+
+project(${ProjectName} VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_compile_definitions(LABYRINTH_EXPORTS)
-
-add_library(LibLabyrinth SHARED 
+set(SOURCES
     src/GridShape.h
     src/IndexProvider.h
     src/Labyrinth.h
@@ -28,16 +29,23 @@ add_library(LibLabyrinth SHARED
     src/Generators/HexagonsOnToreShape.cpp
 )
 
+if(EMSCRIPTEN)
+    add_library(LibLabyrinth STATIC ${SOURCES})
+else()
+    add_compile_definitions(LABYRINTH_EXPORTS)
+    add_library(LibLabyrinth SHARED ${SOURCES})
+endif()
+
 find_path(PCG_INCLUDE_DIRS "pcg_random.hpp") # Only if no build package is required
 
-target_include_directories(LibLabyrinth
+target_include_directories(${ProjectName}
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src
     PRIVATE 
         ${PCG_INCLUDE_DIRS} # Only if no build package is required 
 )
 
-target_link_libraries(LibLabyrinth
+target_link_libraries(${ProjectName}
     PRIVATE 
         LibSimpleMaths
 )

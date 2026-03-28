@@ -2,11 +2,21 @@
 
 //TODO: create a geometry shader to construct node geometry from single point
 
+
+
+#ifdef __EMSCRIPTEN__
+#define SHADER_VERSION "#version 300 es\nprecision mediump float;\nprecision mediump int;\n"
+#define COLOR_INDEX_INPUT "in float vColIndex;"
+#else
+#define SHADER_VERSION "#version 420"
+#define COLOR_INDEX_INPUT "in int vColIndex;"
+#endif
+
 const char* sViewVertexShSource =
-"#version 420\n\
+SHADER_VERSION"\n\
 \n\
-in vec3 vPos;\n\
-in int vColIndex;\n\
+in vec3 vPos;\n"
+COLOR_INDEX_INPUT"\n\
 \n\
 uniform uint model_index;\n\
 \n\
@@ -28,11 +38,11 @@ out vec4 color;\n\
 void main()\n\
 {\n\
     gl_Position = p * v * m[model_index] * vec4(vPos, 1);\n\
-    color = c[vColIndex];\n\
+    color = c[int(vColIndex)];\n\
 }\n";
 
 const char* sViewVertexSingleColorShSource =
-"#version 420\n\
+SHADER_VERSION"\n\
 \n\
 in vec3 vPos;\n\
 \n\
@@ -61,7 +71,7 @@ void main()\n\
 }\n";
 
 const char* sViewFragmentShSource =
-"#version 420\n\
+SHADER_VERSION"\n\
 \n\
 /*uniform uint materialIndex = 0;\n\
 \n\

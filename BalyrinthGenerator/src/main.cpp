@@ -1,5 +1,6 @@
 #include "BalyrinthGeneratorWindow.h"
 
+#ifndef __EMSCRIPTEN__
 #if 1//Used to easy switch between integrated/discrete graphics
 #ifdef WIN32
 #include <Windows.h>
@@ -27,3 +28,5 @@ int main(int pArgC, char** pArgV)
 
 	return EXIT_SUCCESS;
 }
+
+#endif

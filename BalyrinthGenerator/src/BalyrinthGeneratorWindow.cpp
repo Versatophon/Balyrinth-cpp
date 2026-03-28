@@ -177,7 +177,7 @@ void BalyrinthGeneratorWindow::CleanupGeometry()
     mForNodesLut.resize(mMazeGeometryParameters.Height * mMazeGeometryParameters.Width);
     mNodesNeighborCount.resize(mMazeGeometryParameters.Height * mMazeGeometryParameters.Width * mMazeDrawer->GetVertexCountPerNode());
 
-    memset(mNodesNeighborCount.data(), 0, mNodesNeighborCount.size());
+    memset(mNodesNeighborCount.data(), 0, mNodesNeighborCount.size() * sizeof(uint8_t));
 }
 
 int32_t BalyrinthGeneratorWindow::Init()
@@ -192,7 +192,7 @@ int32_t BalyrinthGeneratorWindow::Init()
     mModelsUbo = new Ubo(sizeof(Matrix4f) * 256, "models");
     mModels = (Matrix4f*)mModelsUbo->GetMemory();
 
-    mColorsUbo = new Ubo(sizeof(Color) * 18, "colors");
+    mColorsUbo = new Ubo(sizeof(Color) * 256, "colors");
     mColors = (Color*)mColorsUbo->GetMemory();
 
     if (!LoadColorConfiguration())
@@ -301,7 +301,8 @@ int32_t BalyrinthGeneratorWindow::Init()
 
     uint32_t lVertexCount = (((mMazeGeometryParameters.Height * mMazeGeometryParameters.Width) - 1) + (mMazeGeometryParameters.Height + mMazeGeometryParameters.Width) * 2) * 12;//HACK
 
-    size_t lItemSizes[] = {sizeof(float) * 3, 1};
+    //size_t lItemSizes[] = {sizeof(float) * 3, sizeof(uint32_t) * 1};
+    size_t lItemSizes[] = {sizeof(float) * 3, sizeof(uint8_t) * 1};
 
     //Initialize edges geometry
     mRenderableLabyrinth = new Renderable(mLabyrinthShader, 1, lItemSizes, lVertexCount);
@@ -642,8 +643,8 @@ void BalyrinthGeneratorWindow::ProcessImGui()
                 lChanged |= ImGui::DragInt("Corridor Max Length", &mCorridorMaxLength);
             }
 
-            lChanged |= ImGui::DragScalar("Width", ImGuiDataType_::ImGuiDataType_U64, &mMazeGeometryParameters.Width, .2f, &mMin, &mMax);
-            lChanged |= ImGui::DragScalar("Height", ImGuiDataType_::ImGuiDataType_U64, &mMazeGeometryParameters.Height, .2f, &mMin, &mMax);
+            lChanged |= ImGui::DragInt("Width", &mMazeGeometryParameters.Width, .2f, 1, 300);
+            lChanged |= ImGui::DragInt("Height", &mMazeGeometryParameters.Height, .2f, 1, 300);
             ImGui::DragFloat("C/Second", &mConnectionPerSecond, .1f, .1f, 1000000.f);
 
             ImGui::Checkbox("Show Cells", &mRenderCells);
