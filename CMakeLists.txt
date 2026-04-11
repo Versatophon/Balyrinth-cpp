@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD 20)
 add_subdirectory(LibSimpleMaths)
 add_subdirectory(LibLabyrinth)
 add_subdirectory(BalyrinthGenerator)
+add_subdirectory(TwitchOverlay)
 
 #add_subdirectory(Mazemerizer)
 

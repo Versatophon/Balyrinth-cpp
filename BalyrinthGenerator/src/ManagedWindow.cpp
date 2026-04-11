@@ -360,7 +360,7 @@ int32_t ManagedWindow::InternalEvent(SDL_Event *pEvent)
 
     return Event(pEvent);
 
-    return SDL_APP_CONTINUE;  /* carry on with the program! */
+    //return SDL_APP_CONTINUE;  /* carry on with the program! */
 }
 
 int32_t ManagedWindow::InternalIterate()

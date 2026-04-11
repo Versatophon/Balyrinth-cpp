@@ -692,53 +692,54 @@ void BalyrinthGeneratorWindow::ProcessImGui()
             {
                 mLabyrinthStepper.ForceRedraw();
             }
-        }
 
-        if (ImGui::Button("Regenerate"))
-        {
-            RegenerateLabyrinth();
-        }
+            if (ImGui::Button("Regenerate"))
+            {
+                RegenerateLabyrinth();
+            }
 
-        ImGui::SameLine();
-        ImGui::Checkbox("Keep this seed", &mKeepSeed);
+            ImGui::SameLine();
+            ImGui::Checkbox("Keep this seed", &mKeepSeed);
 
-        //glGetInteger64v(GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX, );
+            //glGetInteger64v(GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX, );
 
-        //GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX;
+            //GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX;
 
 #if 1// debug matrices
-        if (ImGui::CollapsingHeader("3D"))
-        {
-            ImGui::Checkbox("Show Cube", &mShowWireCube);
-
-            for (size_t i = 0; i < 8; ++i)
+            if (ImGui::CollapsingHeader("3D"))
             {
-                std::string lNumber = std::to_string(i);
+                ImGui::Checkbox("Show Cube", &mShowWireCube);
 
-                ImGui::ColorEdit4(("Vertex Color " + lNumber).c_str(), (&mColors[10 + i].R));
+                for (size_t i = 0; i < 8; ++i)
+                {
+                    std::string lNumber = std::to_string(i);
+
+                    ImGui::ColorEdit4(("Vertex Color " + lNumber).c_str(), (&mColors[10 + i].R));
+                }
+
+                mQuaternion = mMainTransform.GetOrientation();
+
+                if (ImGui::DragFloat4("Quat", &mQuaternion.X, 0.001f))
+                {
+                    mQuaternion = mQuaternion.Normalized();
+                    mMainTransform.SetOrientation(mQuaternion);
+                }
+
+                Matrix4f lMatrix = mMainTransform.GetMatrix();
+
+                ImGui::DragFloat4("##Mat0", lMatrix[0].Array(), 0.001f);
+                ImGui::DragFloat4("##Mat1", lMatrix[1].Array(), 0.001f);
+                ImGui::DragFloat4("##Mat2", lMatrix[2].Array(), 0.001f);
+                ImGui::DragFloat4("##Mat3", lMatrix[3].Array(), 0.001f);
             }
-
-            mQuaternion = mMainTransform.GetOrientation();
-
-            if (ImGui::DragFloat4("Quat", &mQuaternion.X, 0.001f))
-            {
-                mQuaternion = mQuaternion.Normalized();
-                mMainTransform.SetOrientation(mQuaternion);
-            }
-
-            Matrix4f lMatrix = mMainTransform.GetMatrix();
-
-            ImGui::DragFloat4("##Mat0", lMatrix[0].Array(), 0.001f);
-            ImGui::DragFloat4("##Mat1", lMatrix[1].Array(), 0.001f);
-            ImGui::DragFloat4("##Mat2", lMatrix[2].Array(), 0.001f);
-            ImGui::DragFloat4("##Mat3", lMatrix[3].Array(), 0.001f);
-        }
 #endif
+        }
 
         ImGui::End();
+    }
 
-        ImGui::Begin("Graphics State");
-
+    if (ImGui::Begin("Graphics State"))
+    {
         ImGui::Text("%s", mGraphicsState.GetRendererName());
 
         float lNormalizedMemoryUsed = 0.f;
@@ -766,9 +767,8 @@ void BalyrinthGeneratorWindow::ProcessImGui()
         ImGui::Text("Graphics Memory used: %i MB", lMemoryUsed);
 
         ImGui::Text("%.1f fps.", ImGui::GetIO().Framerate);
-
-        ImGui::End();
     }
+    ImGui::End();
 }
 
 void BalyrinthGeneratorWindow::InternalUpdateTopology()
