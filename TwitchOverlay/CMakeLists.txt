@@ -86,6 +86,14 @@ if(EMSCRIPTEN)
             LibLabyrinth
             LibSimpleMaths
     )
+
+    add_custom_command(
+        TARGET ${ProjectName} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_CURRENT_SOURCE_DIR}/rsc/minimal.html
+            ${CMAKE_BINARY_DIR}/${ProjectName}/minimal.html
+        COMMENT "Copie de minimal.html dans le répertoire de build"
+    )
 else()
     target_link_libraries(${ProjectName}
         PRIVATE 

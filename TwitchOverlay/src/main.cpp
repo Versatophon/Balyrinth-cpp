@@ -206,8 +206,8 @@ public:
             ImGui::Checkbox("Seconds Units", &mSecondsUnitsDigitChanged);
 
 
-            ImGui::End();
         }
+        ImGui::End();
 
         //Render
         ImGui::Render();
