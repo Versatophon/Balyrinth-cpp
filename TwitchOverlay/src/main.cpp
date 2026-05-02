@@ -66,6 +66,92 @@ public:
 
     SDL_AppResult Init()
     {
+        SDL_Log("InternalInit start");
+
+        SDL_SetAppMetadata("Twitch Overlay", "0.0.1", "com.versatophon.twitch_overlay");
+
+        if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
+            SDL_Log("Couldn't initialize SDL: %s", SDL_GetError());
+            return SDL_APP_FAILURE;
+        }
+
+        // Enable native IME.
+        //SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
+
+        // Create window with graphics context
+        SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+        SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+        SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+        SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
+
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
+#ifdef __EMSCRIPTEN__
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+#else
+        //Use OpenGL 3.1 core
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+#endif
+        //SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
+
+        SDL_PropertiesID lWindowProperties = SDL_CreateProperties();
+        SDL_SetStringProperty(lWindowProperties, SDL_PROP_WINDOW_CREATE_TITLE_STRING, "Twitch Overlay");
+        SDL_SetNumberProperty(lWindowProperties, SDL_PROP_WINDOW_CREATE_X_NUMBER, SDL_WINDOWPOS_UNDEFINED);
+        SDL_SetNumberProperty(lWindowProperties, SDL_PROP_WINDOW_CREATE_Y_NUMBER, SDL_WINDOWPOS_UNDEFINED);
+#ifdef __EMSCRIPTEN__
+        SDL_SetNumberProperty(lWindowProperties, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, 1920);
+        SDL_SetNumberProperty(lWindowProperties, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, 1080);
+#else
+        SDL_SetNumberProperty(lWindowProperties, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, 1280);
+        SDL_SetNumberProperty(lWindowProperties, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, 720);
+#endif
+        SDL_SetBooleanProperty(lWindowProperties, SDL_PROP_WINDOW_CREATE_OPENGL_BOOLEAN, true);
+        SDL_SetBooleanProperty(lWindowProperties, SDL_PROP_WINDOW_CREATE_RESIZABLE_BOOLEAN, true);
+        SDL_SetBooleanProperty(lWindowProperties, SDL_PROP_WINDOW_CREATE_HIGH_PIXEL_DENSITY_BOOLEAN, true);
+
+        mSdlMainWindow = SDL_CreateWindowWithProperties(lWindowProperties);
+
+        SDL_DestroyProperties(lWindowProperties);
+
+        if (mSdlMainWindow == nullptr)
+        {
+            SDL_Log("Couldn't create window: %s", SDL_GetError());
+            return SDL_APP_FAILURE;
+        }
+
+        mSdlGlContext = SDL_GL_CreateContext(mSdlMainWindow);
+        SDL_GL_MakeCurrent(mSdlMainWindow, mSdlGlContext);
+        SDL_GL_SetSwapInterval(1); // Enable vsync
+
+        // Setup Dear ImGui context
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+        ImGuiIO& io = ImGui::GetIO(); (void)io;
+        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+        io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+        //lSDLApp->mTimeFont = io.Fonts->AddFontFromFileTTF("segoeuib.ttf");
+
+        // Setup Dear ImGui style
+        ImGui::StyleColorsDark();
+        //ImGui::StyleColorsLight();
+
+        // Setup scaling
+        ImGuiStyle& style = ImGui::GetStyle();
+
+        // Setup Platform/Renderer backends
+        ImGui_ImplSDL3_InitForOpenGL(mSdlMainWindow, mSdlGlContext);
+
+#ifdef __EMSCRIPTEN__
+        ImGui_ImplOpenGL3_Init("#version 300 es");
+#else
+        ImGui_ImplOpenGL3_Init("#version 330");
+#endif
+        //ImGui_ImplOpenGL3_Init("#version 130");
+
         return SDL_APP_CONTINUE;
     }
 
@@ -115,8 +201,6 @@ public:
         ImGui_ImplSDL3_NewFrame();
         ImGui::NewFrame();
 
-
-
 #ifdef IMGUI_HAS_VIEWPORT
         ImGuiViewport* lViewport = ImGui::GetMainViewport();
         ImGui::SetNextWindowPos(lViewport->GetWorkPos());
@@ -129,7 +213,6 @@ public:
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.f });
         ImGui::Begin("Main", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoInputs);
-        
         {
             SDL_Time lTicks;
             SDL_DateTime lLocalTime;
@@ -160,8 +243,6 @@ public:
             ImGui::PopStyleVar();
             ImGui::PopFont();
         }
-
-
         ImGui::End();
         ImGui::PopStyleVar();
         ImGui::PopStyleVar();
@@ -257,91 +338,7 @@ SDL_AppResult SDL_AppInit(void** pAppState, int pArgC, char** pArgV)
     SDLApp* lSDLApp = new SDLApp();
     *pAppState = lSDLApp;
 
-    SDL_Log("InternalInit start");
 
-    SDL_SetAppMetadata("Twitch Overlay", "0.0.1", "com.versatophon.twitch_overlay");
-
-    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
-        SDL_Log("Couldn't initialize SDL: %s", SDL_GetError());
-        return SDL_APP_FAILURE;
-    }
-
-    // Enable native IME.
-    //SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
-
-    // Create window with graphics context
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
-    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
-
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
-#ifdef __EMSCRIPTEN__
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-#else
-    //Use OpenGL 3.1 core
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-#endif
-    //SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
-
-    SDL_PropertiesID lWindowProperties = SDL_CreateProperties();
-    SDL_SetStringProperty(lWindowProperties, SDL_PROP_WINDOW_CREATE_TITLE_STRING, "Twitch Overlay");
-    SDL_SetNumberProperty(lWindowProperties, SDL_PROP_WINDOW_CREATE_X_NUMBER, SDL_WINDOWPOS_UNDEFINED);
-    SDL_SetNumberProperty(lWindowProperties, SDL_PROP_WINDOW_CREATE_Y_NUMBER, SDL_WINDOWPOS_UNDEFINED);
-#ifdef __EMSCRIPTEN__
-    SDL_SetNumberProperty(lWindowProperties, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, 1920);
-    SDL_SetNumberProperty(lWindowProperties, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, 1080);
-#else
-    SDL_SetNumberProperty(lWindowProperties, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, 1280);
-    SDL_SetNumberProperty(lWindowProperties, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, 720);
-#endif
-    SDL_SetBooleanProperty(lWindowProperties, SDL_PROP_WINDOW_CREATE_OPENGL_BOOLEAN, true);
-    SDL_SetBooleanProperty(lWindowProperties, SDL_PROP_WINDOW_CREATE_RESIZABLE_BOOLEAN, true);
-    SDL_SetBooleanProperty(lWindowProperties, SDL_PROP_WINDOW_CREATE_HIGH_PIXEL_DENSITY_BOOLEAN, true);
-
-    lSDLApp->mSdlMainWindow = SDL_CreateWindowWithProperties(lWindowProperties);
-
-    SDL_DestroyProperties(lWindowProperties);
-
-    if (lSDLApp->mSdlMainWindow == nullptr)
-    {
-        SDL_Log("Couldn't create window: %s", SDL_GetError());
-        return SDL_APP_FAILURE;
-    }
-
-    lSDLApp->mSdlGlContext = SDL_GL_CreateContext(lSDLApp->mSdlMainWindow);
-    SDL_GL_MakeCurrent(lSDLApp->mSdlMainWindow, lSDLApp->mSdlGlContext);
-    SDL_GL_SetSwapInterval(1); // Enable vsync
-
-    // Setup Dear ImGui context
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-
-    //lSDLApp->mTimeFont = io.Fonts->AddFontFromFileTTF("segoeuib.ttf");
-
-    // Setup Dear ImGui style
-    ImGui::StyleColorsDark();
-    //ImGui::StyleColorsLight();
-
-    // Setup scaling
-    ImGuiStyle& style = ImGui::GetStyle();
-
-    // Setup Platform/Renderer backends
-    ImGui_ImplSDL3_InitForOpenGL(lSDLApp->mSdlMainWindow, lSDLApp->mSdlGlContext);
-
-#ifdef __EMSCRIPTEN__
-    ImGui_ImplOpenGL3_Init("#version 300 es");
-#else
-    ImGui_ImplOpenGL3_Init("#version 330");
-#endif
-    //ImGui_ImplOpenGL3_Init("#version 130");
 
     return lSDLApp->Init();
 }
