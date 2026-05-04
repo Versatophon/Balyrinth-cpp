@@ -65,7 +65,10 @@ target_include_directories(${ProjectName}
 
 if(EMSCRIPTEN)
     set_target_properties(${ProjectName} PROPERTIES SUFFIX ".html")
-    
+    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-experimental -s MAIN_MODULE=2 -s EXPORT_ES6=1 -s EXPORTED_RUNTIME_METHODS=FS,ccall,cwrap -s FORCE_FILESYSTEM=1")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-experimental -s MAIN_MODULE=2 -sEXPORTED_FUNCTIONS=_main,_OnSyncFsSuccess,_OnSyncFsFailure")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lidbfs.js --use-preload-plugins")
+
     target_include_directories(${ProjectName} PRIVATE
         "$ENV{EMSDK}/upstream/emscripten/cache/sysroot/include"
     )
@@ -81,6 +84,7 @@ if(EMSCRIPTEN)
         "-sALLOW_MEMORY_GROWTH=1"
         "-sWASM=1"
     )
+
     target_link_libraries(${ProjectName}
         PRIVATE
             LibLabyrinth

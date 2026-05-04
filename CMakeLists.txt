@@ -28,6 +28,6 @@ add_subdirectory(TwitchOverlay)
 # D:\CleanDev\emscripten\emsdk\emsdk_env.ps1
 
 # build emscripten
-# emcmake cmake -B build_web -G Ninja -DCMAKE_TOOLCHAIN_FILE='emscripten.cmake' -DPCG_INCLUDE_DIRS="D:/CleanDev/vcpkg/installed/x64-windows/include"
+# emcmake cmake -B build_web -G Ninja -DCMAKE_TOOLCHAIN_FILE='emscripten.cmake' -DSDL_EMSCRIPTEN_PERSISTENT_PATH=/libsdl -DPCG_INCLUDE_DIRS="D:/CleanDev/vcpkg/installed/x64-windows/include"
 # cmake --build build_web
 # npx serve build_web
