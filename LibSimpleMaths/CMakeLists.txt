@@ -1,12 +1,10 @@
 cmake_minimum_required(VERSION 3.25)
-project(LibSimpleMaths VERSION 0.1.0 LANGUAGES CXX)
-
+set(ProjectName "LibSimpleMaths")
+project(${ProjectName} VERSION 0.1.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_compile_definitions(SIMPLE_MATHS_EXPORTS)
-
-add_library(LibSimpleMaths SHARED 
+set(SOURCES
     src/SimpleMathsApi.h
     src/Matrix4f.h
     src/Matrix4f.cpp
@@ -28,9 +26,18 @@ add_library(LibSimpleMaths SHARED
     src/Vector3i.cpp
 )
 
-target_include_directories(LibSimpleMaths
+if(EMSCRIPTEN)
+    # WebAssembly : bibliothèque statique obligatoire
+    # Les .dll/.so n'existent pas en WASM
+    add_library(${ProjectName} STATIC ${SOURCES})
+else()
+    add_compile_definitions(SIMPLE_MATHS_EXPORTS)
+    add_library(${ProjectName} SHARED ${SOURCES})
+endif()
+
+target_include_directories(${ProjectName}
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src
-    PRIVATE 
-        ${PCG_INCLUDE_DIRS} # Only if no build package is required 
+    PRIVATE
+        ${PCG_INCLUDE_DIRS}
 )

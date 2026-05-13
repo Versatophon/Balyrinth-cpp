@@ -8,5 +8,5 @@ Binder::Binder(const Bindable& pBindable) :
 
 Binder::~Binder()
 {
-	mBindable.Debind();
+	mBindable.Unbind();
 }

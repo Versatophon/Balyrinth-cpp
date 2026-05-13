@@ -7,11 +7,11 @@
 #include <cstdint>
 #include <string>
 
-class Tex:public Bindable
+class Texture:public Bindable
 {
 public:
 	void Bind() const override;
-	void Debind() const override;
+	void Unbind() const override;
 
 	void Generate();
 	void Destroy();

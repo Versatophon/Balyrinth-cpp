@@ -4,15 +4,43 @@
 
 #include <cstdint>
 
-enum class Algorithm
+enum class RoomSelect//Maybe one to force choose a node with only one connection to generate corridor maze: the deepest maze ever
 {
-	WallBreakerStackBackTrack,
-	WallBreakerQueueBackTrack,
-	WallBreakerRandomBackTrack,
-	WallBreakerBloom,
+	Last,
+	Fill
+};
+
+enum class Backtrack
+{
+	Stack,
+	Queue,
+	Random,
+};
+
+enum class ComputeDirection
+{
+	Any,
+	ForceChange,
+	//Always,//Default mode, for each node connected, get a random direction
+	//ForceAlways,//Force change direction if this direction is not the only available
+	//OnLock,//When it's not possible to dig anymore, creates long corridors
+	//OnFixedLength,//When dig fixed count on a specific direction, force change
+	//ForceOnFixedLength,
+	//OnRandomLength,//Compute a new length when get a wall or reach the length 
+	//ForceOnRandomLength,
+};
+
+struct GenerationParameters
+{
+	RoomSelect RoomSelectMode;
+	Backtrack BacktrackMode;
+	ComputeDirection ComputeDirectionMode;
+	int32_t CorridorMinLength;
+	int32_t CorridorMaxLength;
 };
 
 class Topology;
+class RoomNeighborhood;
 struct LabyrinthStepperId;
 struct Seed;
 
@@ -28,18 +56,18 @@ public:
 class LABYRINTH_API LabyrinthStepper
 {
 public:
-	LabyrinthStepper(Algorithm pAlgorithm);
+	LabyrinthStepper(GenerationParameters pGenerationParameters);
 	~LabyrinthStepper();
 
 	void SetUpdateListener(TopologyUpdaterListener* pListener);
 
-	void UpdateTopology(const Topology* pTopology);
+	void UpdateTopology(const Topology* pTopology, const RoomNeighborhood* pRoomNeighborhood);
 
-	void UpdateAlgorithm(Algorithm pAlgorithm);
+	void UpdateAlgorithm(GenerationParameters pGenerationParameters);
 
 	void InitiateGeneration(const Seed* pSeed = nullptr);
 
-	void ProcessStep(uint32_t pConnectionCount);
+	void ProcessStep(uint32_t pConnectionCount, float pMaxTime);
 
 	void ForceRedraw();
 

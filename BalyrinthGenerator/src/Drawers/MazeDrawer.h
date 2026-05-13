@@ -3,15 +3,31 @@
 #include <Vector3f.h>
 #include <Labyrinth.h>
 
+#include "ShapeMode.h"
+#include "NodeShape.h"
+
 #include "GeometryContainer.h"
 
+struct MazeDrawerParameters
+{
+    bool ContiguousDraw;
+    NodeShape ShapeOfNode;
+};
+
+class NodeShapeProvider;
+class EdgeShapeProvider;
+
 class MazeDrawer;
-typedef void (MazeDrawer::* DrawRectangleFunc)(const Vector3f& pMin, const Vector3f& pMax);
 
 class MazeDrawer:public TopologyUpdaterListener
 {
 public:
-    MazeDrawer(GeometryContainer& pGeometryContainer);
+    MazeDrawer(GeometryContainer& pGeometryContainer, MazeDrawerParameters pParameters);
+
+    void SetParameters(MazeDrawerParameters pParameters);
+
+    size_t GetVertexCountPerNode() const;
+    size_t GetVertexCountPerEdge() const;
 
     void AddFirstNode(uint32_t pNodeIndex) override;
     void AddEdge(uint32_t pNodeIndex0, uint32_t pNodeIndex1) override;
@@ -19,7 +35,7 @@ public:
 
 protected:
     GeometryContainer& mGeometryContainer;
-    std::vector<Vector2f>& mNodePositions;
+    std::vector<Vector3f>& mNodePositions;
     MazeGeometryParameters& mMazeGeometryParameters;
 
     std::vector<float>& mVerticesToAdd;
@@ -39,11 +55,12 @@ protected:
     Vector3f mSpaceSize = { 1, 1, 1 };
     float mHalfWidth = .5f;
 
+    MazeDrawerParameters mParameters;
+
+    NodeShapeProvider* mNodeShapeProvider = nullptr;
+    EdgeShapeProvider* mEdgeShapeProvider = nullptr;
+
     void DrawNode(uint32_t pIndex, bool pInit = false);
 
-    void DrawAANode(const Vector3f& pMin, const Vector3f& pMax);
-    void DrawAAEdge(const Vector3f& pMin, const Vector3f& pMax);
-    void DrawAAPath(const Vector3f& pMin, const Vector3f& pMax);
-
-    virtual void DrawEdge(DrawRectangleFunc pFunction, uint32_t pNodeIndex0, uint32_t pNodeIndex1, float pDepth) = 0;
+    void DrawEdge(std::vector<float>& pContainer, uint32_t pNodeIndex0, uint32_t pNodeIndex1, float pDepth);
 };

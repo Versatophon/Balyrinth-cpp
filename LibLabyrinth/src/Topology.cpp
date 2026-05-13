@@ -1,6 +1,7 @@
 #include "Topology.h"
 
 #include <queue>
+#include <cstring>
 
 Topology::Topology(size_t pNodeCount):
 	mNodes(std::vector<Node>(pNodeCount))

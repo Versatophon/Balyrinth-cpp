@@ -21,15 +21,26 @@ extern "C" {
 #include <Node.h>//INVALID_NODE_INDEX
 
 #include "Drawers/GeometryContainer.h"
+#include "Drawing/Color.h"
+#include "Drawers/MazeGeometyParameters.h"
+#include "Drawers/NodeShape.h"
+#include "Drawers/ShapeMode.h"
+
+#include "Graphics/GraphicsState.h"
 
 class Viewport;
 class ShaderProgram;
 class Ubo;
 class Vao;
 class ArrayBuffer;
+class IndexBuffer;
+class RenderableMesh;
 
 struct Matrix4f;
 struct Vector2i;
+
+class Renderable;
+class MazeDrawer;
 
 template <typename T> struct SelectableGroup
 {
@@ -51,14 +62,13 @@ template <typename T> struct SelectableGroup
 //TODO: Use progressive generation(sort of laser engraver) to display time as number made from mazes
 //TODO: ajoute feature qui montre la limite de la forme de base avec un rectangle englobant
 //TODO: ajoute un moyen d'enregistrer une topologie dans un fichier
+//TODO: Prendre 2 sommets au hasard, résoudre le chemin entre ces sommets, et placer un mob qui navigue entre ces sommets, mieux on peut imaginer choisir un sommet au hasard une fois la destination atteinte
+// On pourrait utiliser cet algo pour faire du path tracing pour des pnjs en ayant généré au préalable une topologie sur l'environnement 2D/3D 
 
-struct Color
-{
-    float R;
-    float G;
-    float B;
-    float A;
-};
+//Cool Seeds in bloom:
+//1287658791410650253 11769651394140859956
+//1044605749197665528 5506795945906036838 
+//17179595647950913834 5676496069824750797 //Wave seed
 
 class BalyrinthGeneratorWindow:public ManagedWindow, GeometryContainer
 {
@@ -67,7 +77,7 @@ public:
     ~BalyrinthGeneratorWindow();
 
     Shape* GetShape() override;
-    std::vector<Vector2f>& GetNodePositions() override;
+    std::vector<Vector3f>& GetNodePositions() override;
     MazeGeometryParameters& GetMazeGeometryParameters() override;
     std::vector<float>& GetVerticesToAdd() override;
     std::vector<float>& GetForNodesVerticesToAdd() override;
@@ -88,16 +98,20 @@ protected:
 private:
     bool mIsControlWindowVisible = true;
 
-    size_t mMin = 1;
-    size_t mMax = 300;
+    //size_t mMin = 1;
+    //size_t mMax = 300;
 
     MazeGeometryParameters mMazeGeometryParameters;
 
+    float mElapsedTime = 0.f;
+    float mConnectionPerSecond = 200.f;
     size_t mConnectionPerFrame = 40;
 
     bool mRenderCells = true;
     bool mRenderEdges = true;
     bool mRenderPath = false;
+
+    bool mRenderPathAnimation = false;
 
     //Convert in materials
     Color mBackgroundColor { 0.2f, 0.4f, 0.2f, 1.f };
@@ -119,46 +133,53 @@ private:
     void InternalUpdateTopology();
 
     SelectableGroup<void*> mShapeGenerators;
-    SelectableGroup<TopologyUpdaterListener*> mShapeDrawModes;
-    SelectableGroup<Algorithm> mAlgorithms;
+    bool mContiguousDraw = false;
+    //SelectableGroup<ShapeMode> mShapeModes;
+    SelectableGroup<NodeShape> mNodeShapeModes;
+
+    SelectableGroup<RoomSelect> mRoomSelectMode;
+    SelectableGroup<Backtrack> mBacktrackModes;
+    SelectableGroup<ComputeDirection> mComputeDirectionModes;
+    int32_t mCorridorMinLength = 1;
+    int32_t mCorridorMaxLength = 1;
+
+    MazeDrawer* mMazeDrawer = nullptr;
 
     std::unordered_set<uint32_t> mAlreadyProcessed;
     std::queue<std::pair<uint32_t, Vector2f>> mNodesToProcess;
 
-    std::vector<Vector2f> mNodePositions;
+    std::vector<Vector3f> mNodePositions;
 
     Viewport* mViewport = nullptr;
 
-    ShaderProgram* mShader = nullptr;
+    ShaderProgram* mLabyrinthShader = nullptr;
+    ShaderProgram* mNodeShader = nullptr;
+    ShaderProgram* mPathShader = nullptr;
     Ubo* mMatricesUbo = nullptr;
 
     Ubo* mModelsUbo = nullptr;
     Ubo* mColorsUbo = nullptr;
 
     bool mNeedToCleanGeometry = false;
-    ArrayBuffer** mLabyrinthVBufs = nullptr;
-    Vao* mLabyrinthVao = nullptr;
-    uint32_t mCurrentPositionInBuffer = 0;
+    
+    Renderable* mRenderableLabyrinth = nullptr;
 
-    ArrayBuffer** mNodesVBufs = nullptr;
-    Vao* mNodesVao = nullptr;
-    uint32_t mCurrentPositionInNodesBuffer = 0;
-    std::vector<uint8_t> mNodesNeigborCount;
+    RenderableMesh* mNodesMesh = nullptr;
 
+    Renderable* mRenderableNodes = nullptr;
+    std::vector<uint8_t> mNodesNeighborCount;
 
     Vector3f mRotationCenter;
 
     Transformf mMainTransform;
     std::vector<Transformf> mNeighborTransforms;
 
-    // Longuest path
-    ArrayBuffer** mPathVBufs = nullptr;
-    Vao* mPathVao = nullptr;
-    size_t mPathVertexCount = 0;
+    // Longest path
+    Renderable* mRenderableLongestPath = nullptr;
 
     // Cube For tests
-    ArrayBuffer** mCubeVBufs = nullptr;
-    Vao* mCubeVao = nullptr;
+    RenderableMesh* mCubeMesh = nullptr;
+    bool mShowWireCube = false;
 
     //neighbors stuff
     bool mShowNeighbors = false;
@@ -175,6 +196,10 @@ private:
     Vector3f mEuler;
     Quaternionf mQuaternion;
 
+    GraphicsState mGraphicsState;
+
     bool LoadColorConfiguration();
     void SaveColorConfiguration();
+
+    void RenderItem(ShaderProgram* pProgram, Renderable* pRenderable);
 };

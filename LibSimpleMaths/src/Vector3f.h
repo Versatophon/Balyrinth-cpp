@@ -7,9 +7,9 @@
 
 struct SIMPLE_MATHS_API Vector3f
 {
-    float X;
-    float Y;
-    float Z;
+    float X = 0;
+    float Y = 0;
+    float Z = 0;
 
     float Norm() const;
     Vector3f Normalized() const;
@@ -34,14 +34,14 @@ struct SIMPLE_MATHS_API Vector3f
     static const Vector3f ZUnit;
 };
 
-std::ostream& operator<<(std::ostream& pStream, const Vector3f& pVector);
+SIMPLE_MATHS_API std::ostream& operator<<(std::ostream& pStream, const Vector3f& pVector);
 
-Vector3f operator+(const Vector3f& pLeft, const Vector3f& pRight);
-Vector3f operator-(const Vector3f& pLeft, const Vector3f& pRight);
-Vector3f operator*(float pLeft, const Vector3f& pRight);
-Vector3f operator*(const Vector3f& pLeft, float pRight);
-Vector3f operator/(float pLeft, const Vector3f& pRight);
-Vector3f operator/(const Vector3f& pLeft, float pRight);
+SIMPLE_MATHS_API Vector3f operator+(const Vector3f& pLeft, const Vector3f& pRight);
+SIMPLE_MATHS_API Vector3f operator-(const Vector3f& pLeft, const Vector3f& pRight);
+SIMPLE_MATHS_API Vector3f operator*(float pLeft, const Vector3f& pRight);
+SIMPLE_MATHS_API Vector3f operator*(const Vector3f& pLeft, float pRight);
+SIMPLE_MATHS_API Vector3f operator/(float pLeft, const Vector3f& pRight);
+SIMPLE_MATHS_API Vector3f operator/(const Vector3f& pLeft, float pRight);
 
-bool operator==(const Vector3f& pLeft, const Vector3f& pRight);
-bool operator!=(const Vector3f& pLeft, const Vector3f& pRight);
+SIMPLE_MATHS_API bool operator==(const Vector3f& pLeft, const Vector3f& pRight);
+SIMPLE_MATHS_API bool operator!=(const Vector3f& pLeft, const Vector3f& pRight);

@@ -20,21 +20,26 @@ extern "C" {
 #include <Vector2i.h>
 #include <Trigonometry.h>
 
+#include "GL/RenderableMesh.h"
 #include "GL/Shader.h"
-#include "GL/Tex.h"
+#include "GL/ShaderProgram.h"
 #include "GL/Viewport.h"
-#include "GL/Buffers.h"
+
+#include "GL/Buffers/ArrayBuffer.h"
+#include "GL/Buffers/Ubo.h"
 
 #include "Resources/InlineShaders.h"
 
-#include "Drawers/ContiguousMazeDrawer.h"
-#include "Drawers/ShapeMazeDrawer.h"
+//#include "Drawers/ContiguousMazeDrawer.h"
+//#include "Drawers/ShapeMazeDrawer.h"
+#include "Drawers/MazeDrawer.h"
 
 #include "Tools/SettingsLoadSave.h"
 
+#include "GL/Renderable.h"
 #include "GL/Binder.h"
 
-//TODO: utiliser une table d'indirection contenant les coordonn�es normalis�es de chaque node, avec des g�n�rateurs
+//TODO: utiliser une table d'indirection contenant les coordonnées normalisées de chaque node, avec des générateurs
 //TODO: ajouter une fonctionnalité pour sérialiser les topologies
 //TODO: ajouter une fonctionnalité pour exporter la seed
 
@@ -61,26 +66,44 @@ template <typename T> bool ExecuteCombobox(const char* pLabel, SelectableGroup<T
 }
 
 BalyrinthGeneratorWindow::BalyrinthGeneratorWindow(): ManagedWindow(0, nullptr),
-    mLabyrinthStepper(LabyrinthStepper(Algorithm::WallBreakerQueueBackTrack)),
+mLabyrinthStepper(LabyrinthStepper({ RoomSelect::Last, Backtrack::Queue, ComputeDirection::Any })),
     mViewport(new Viewport)
 {
     mShapeGenerators = {{{"Squares On Tore", (void*)GenerateSquaresOnToreShape},
-                         {"Squares On Rect", (void*)GenerateSquaresOnRectShape}}};
-    mShapeDrawModes = {{{"Shape", new ShapeMazeDrawer(*this)},
-                        {"Contiguous", new ContiguousMazeDrawer(*this)}}};
+                         {"Squares On Rect", (void*)GenerateSquaresOnRectShape},
+                         {"Hexagons On Tore", (void*)GenerateHexagonsOnToreShape},
+                         {"Hexagons On Rect", (void*)GenerateHexagonsOnRectShape}}};
 
-    mAlgorithms = { {{"WB Stack Backtrack", Algorithm::WallBreakerStackBackTrack}, 
-                     {"WB Queue Backtrack", Algorithm::WallBreakerQueueBackTrack},
-                     {"WB Random Backtrack", Algorithm::WallBreakerRandomBackTrack},
-                     {"WB Bloom", Algorithm::WallBreakerBloom}}};
+    mShapeGenerators.mSelectedIndex = 0;
 
-    mLabyrinthStepper.SetUpdateListener(mShapeDrawModes.Item());
+    mNodeShapeModes = {{{"Triangle", NodeShape::Triangle},
+                        {"Square", NodeShape::Square},
+                        {"Pentagon", NodeShape::Pentagon},
+                        {"Hexagon", NodeShape::Hexagon},
+                        {"Heptagon", NodeShape::Heptagon},
+                        {"Octogon", NodeShape::Octogon}}};
+
+    mNodeShapeModes.mSelectedIndex = 1;
+
+    mRoomSelectMode = {{{"Last Room Added", RoomSelect::Last},
+                        {"Fill Room", RoomSelect::Fill}} };
+
+    mBacktrackModes = {{{"BT Stack", Backtrack::Stack},
+                        {"BT Queue", Backtrack::Queue},
+                        {"BT Random", Backtrack::Random}}};
+
+    mComputeDirectionModes = {{{"Any", ComputeDirection::Any},
+                               {"Force Change", ComputeDirection::ForceChange}}};
+
+    mMazeDrawer = new MazeDrawer(*this, {/*mShapeModes.Item()*/mContiguousDraw, mNodeShapeModes.Item()});
+
+    mLabyrinthStepper.SetUpdateListener(mMazeDrawer);
 
     {
         mForNodesLut.resize(mMazeGeometryParameters.Height * mMazeGeometryParameters.Width);
-        mNodesNeigborCount.resize(mMazeGeometryParameters.Height * mMazeGeometryParameters.Width * 6);
+        mNodesNeighborCount.resize(mMazeGeometryParameters.Height * mMazeGeometryParameters.Width * mMazeDrawer->GetVertexCountPerNode());
 
-        memset(mNodesNeigborCount.data(), 0, mNodesNeigborCount.size());
+        memset(mNodesNeighborCount.data(), 0, mNodesNeighborCount.size());
     }
 
     InternalUpdateTopology();
@@ -93,10 +116,12 @@ BalyrinthGeneratorWindow::BalyrinthGeneratorWindow(): ManagedWindow(0, nullptr),
  
 BalyrinthGeneratorWindow::~BalyrinthGeneratorWindow()
 {
-    for (std::pair<std::string, TopologyUpdaterListener*> lListener : mShapeDrawModes.mItems)
-    {
-        delete lListener.second;
-    }
+    //for (std::pair<std::string, TopologyUpdaterListener*> lListener : mShapeDrawModes.mItems)
+    //{
+    //    delete lListener.second;
+    //}
+
+    delete mMazeDrawer;
 
     delete mViewport;
 }
@@ -106,7 +131,7 @@ Shape* BalyrinthGeneratorWindow::GetShape()
     return mShapeProvider;
 }
 
-std::vector<Vector2f>& BalyrinthGeneratorWindow::GetNodePositions()
+std::vector<Vector3f>& BalyrinthGeneratorWindow::GetNodePositions()
 {
     return mNodePositions;
 }
@@ -133,7 +158,7 @@ std::vector<uint32_t>& BalyrinthGeneratorWindow::GetForNodesLut()
 
 std::vector<uint8_t>& BalyrinthGeneratorWindow::GetForNodesCount()
 {
-    return mNodesNeigborCount;
+    return mNodesNeighborCount;
 }
 
 std::vector<float>& BalyrinthGeneratorWindow::GetForPathVerticesToAdd()
@@ -150,14 +175,16 @@ void BalyrinthGeneratorWindow::CleanupGeometry()
     mForPathVerticesToUpload.clear();
 
     mForNodesLut.resize(mMazeGeometryParameters.Height * mMazeGeometryParameters.Width);
-    mNodesNeigborCount.resize(mMazeGeometryParameters.Height * mMazeGeometryParameters.Width * 6);
+    mNodesNeighborCount.resize(mMazeGeometryParameters.Height * mMazeGeometryParameters.Width * mMazeDrawer->GetVertexCountPerNode());
 
-    memset(mNodesNeigborCount.data(), 0, mNodesNeigborCount.size());
+    memset(mNodesNeighborCount.data(), 0, mNodesNeighborCount.size() * sizeof(uint8_t));
 }
 
 int32_t BalyrinthGeneratorWindow::Init()
 {
-    GLenum lreturn = glewInit();
+    GLenum lReturn = glewInit();
+
+    mGraphicsState.Init();
 
     mMatricesUbo = new Ubo(sizeof(Matrix4f) * 2, "matrices");
     mMatrices = (Matrix4f*)mMatricesUbo->GetMemory();
@@ -165,7 +192,7 @@ int32_t BalyrinthGeneratorWindow::Init()
     mModelsUbo = new Ubo(sizeof(Matrix4f) * 256, "models");
     mModels = (Matrix4f*)mModelsUbo->GetMemory();
 
-    mColorsUbo = new Ubo(sizeof(Color) * 14, "colors");
+    mColorsUbo = new Ubo(sizeof(Color) * 256, "colors");
     mColors = (Color*)mColorsUbo->GetMemory();
 
     if (!LoadColorConfiguration())
@@ -175,16 +202,20 @@ int32_t BalyrinthGeneratorWindow::Init()
         mColors[2] = { 0, float(0xAA) / float(0xFF), 0, float(0xFF) / float(0xFF) };
         mColors[3] = { 0, float(0xFF) / float(0xFF), 0, float(0xFF) / float(0xFF) };
         mColors[4] = { float(0xFF) / float(0xFF), 0, 0, float(0xFF) / float(0xFF) };
-        mColors[5] = { float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF) };
-        
-        mColors[6] = { float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF) };
-        mColors[7] = { float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF) };
-        mColors[8] = { float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF) };
+        mColors[5] = { float(0xFF) / float(0xFF), 0, 0, float(0xFF) / float(0xFF) };
+        mColors[6] = { float(0xFF) / float(0xFF), 0, 0, float(0xFF) / float(0xFF) };
+        mColors[7] = { float(0xFF) / float(0xFF), 0, 0, float(0xFF) / float(0xFF) };
+        mColors[8] = { float(0xFF) / float(0xFF), 0, 0, float(0xFF) / float(0xFF) };
         mColors[9] = { float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF) };
+        
         mColors[10] = { float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF) };
         mColors[11] = { float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF) };
         mColors[12] = { float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF) };
         mColors[13] = { float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF) };
+        mColors[14] = { float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF) };
+        mColors[15] = { float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF) };
+        mColors[16] = { float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF) };
+        mColors[17] = { float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF), float(0xFF) / float(0xFF) };
     }
 
     mMatrices[0] = Matrix4f::Id;
@@ -194,59 +225,97 @@ int32_t BalyrinthGeneratorWindow::Init()
 
     mModels[0] = Matrix4f::Id;
 
-    mShader = new ShaderProgram;
+    mLabyrinthShader = new ShaderProgram;
+    mNodeShader = new ShaderProgram;
+    mPathShader = new ShaderProgram;
 
-    Shader* lVertexShader = new Shader(ShaderType::VERTEX_SHADER);
-    Shader* lFragmentShader = new Shader(ShaderType::FRAGMENT_SHADER);
+    Shader* lVertexShader = new Shader(ShaderType::VertexShader);
+    Shader* lVertexShaderSingleColor = new Shader(ShaderType::VertexShader);
+    Shader* lFragmentShader = new Shader(ShaderType::FragmentShader);
 
     lVertexShader->LoadFromString(sViewVertexShSource);
+    lVertexShaderSingleColor->LoadFromString(sViewVertexSingleColorShSource);
     lFragmentShader->LoadFromString(sViewFragmentShSource);
-    mShader->AttachShader(lVertexShader);
-    mShader->AttachShader(lFragmentShader);
-
-    mShader->Link();
-
-    mShader->AddAttribute("vPos", AttributeType::FLOAT);
-    mShader->AddAttribute("vColIndex", AttributeType::INTEGER);
-    mShader->AddUniform("model_index");
 
     {
-        Binder lBinder(*mShader);
-        mShader->UpdateUniform("model_index", 0);
+        mNodeShader->AttachShader(lVertexShader);
+        mNodeShader->AttachShader(lFragmentShader);
+
+        mNodeShader->Link();
+
+        mNodeShader->AddAttribute("vPos", AttributeType::Float);
+        mNodeShader->AddAttribute("vColIndex", AttributeType::Integer);
+        mNodeShader->AddUniform("model_index");
+
+        {
+            Binder lBinder(*mNodeShader);
+            mNodeShader->UpdateUniform("model_index", 0);
+        }
+
+        mNodeShader->LinkUbo(mMatricesUbo);
+        mNodeShader->LinkUbo(mModelsUbo);
+        mNodeShader->LinkUbo(mColorsUbo);
     }
 
-    mShader->LinkUbo(mMatricesUbo);
-    mShader->LinkUbo(mModelsUbo);
-    mShader->LinkUbo(mColorsUbo);
+    {
+        mLabyrinthShader->AttachShader(lVertexShaderSingleColor);
+        mLabyrinthShader->AttachShader(lFragmentShader);
 
-    uint32_t lVerticesCount = (((mMazeGeometryParameters.Height * mMazeGeometryParameters.Width) - 1) + (mMazeGeometryParameters.Height + mMazeGeometryParameters.Width) * 2) * 6;
+        mLabyrinthShader->Link();
 
-    //Initialize edges geometry
-    mLabyrinthVao = new Vao;
+        mLabyrinthShader->AddAttribute("vPos", AttributeType::Float);
+        mLabyrinthShader->AddUniform("model_index");
+        mLabyrinthShader->AddUniform("color_index");
 
-    mLabyrinthVBufs = new ArrayBuffer * [2];
-    mLabyrinthVBufs[0] = new ArrayBuffer(lVerticesCount * sizeof(float) * 3, BufferUsage::Dynamic, nullptr);
-    mLabyrinthVBufs[1] = new ArrayBuffer(lVerticesCount * sizeof(uint8_t), BufferUsage::Dynamic, nullptr);
-    mLabyrinthVao->Init(mShader, mLabyrinthVBufs);
+        {
+            Binder lBinder(*mLabyrinthShader);
+            mLabyrinthShader->UpdateUniform("model_index", 0);
+            mLabyrinthShader->UpdateUniform("color_index", 0);
+        }
 
-    //Initialize nodes geometry
-    mNodesVao = new Vao;
-
-    mNodesVBufs = new ArrayBuffer * [2];
-    mNodesVBufs[0] = new ArrayBuffer(lVerticesCount * sizeof(float) * 3, BufferUsage::Dynamic, nullptr);
-    mNodesVBufs[1] = new ArrayBuffer(lVerticesCount * sizeof(uint8_t), BufferUsage::Dynamic, nullptr);
-    mNodesVao->Init(mShader, mNodesVBufs);
-
-    mPathVao = new Vao;
-   
-    mPathVBufs = new ArrayBuffer * [2];
-    mPathVBufs[0] = new ArrayBuffer(0 * sizeof(float) * 3, BufferUsage::Dynamic, nullptr);
-    mPathVBufs[1] = new ArrayBuffer(0 * sizeof(uint8_t), BufferUsage::Dynamic, nullptr);
-    mPathVao->Init(mShader, mPathVBufs);
+        mLabyrinthShader->LinkUbo(mMatricesUbo);
+        mLabyrinthShader->LinkUbo(mModelsUbo);
+        mLabyrinthShader->LinkUbo(mColorsUbo);
+    }
 
     {
+        mPathShader->AttachShader(lVertexShaderSingleColor);
+        mPathShader->AttachShader(lFragmentShader);
 
-        std::vector<Vector3f> lVertices =
+        mPathShader->Link();
+
+        mPathShader->AddAttribute("vPos", AttributeType::Float);
+        mPathShader->AddUniform("model_index");
+        mPathShader->AddUniform("color_index");
+
+        {
+            Binder lBinder(*mPathShader);
+            mPathShader->UpdateUniform("model_index", 0);
+            mPathShader->UpdateUniform("color_index", 9);
+        }
+
+        mPathShader->LinkUbo(mMatricesUbo);
+        mPathShader->LinkUbo(mModelsUbo);
+        mPathShader->LinkUbo(mColorsUbo);
+    }
+
+    uint32_t lVertexCount = (((mMazeGeometryParameters.Height * mMazeGeometryParameters.Width) - 1) + (mMazeGeometryParameters.Height + mMazeGeometryParameters.Width) * 2) * 12;//HACK
+
+    //size_t lItemSizes[] = {sizeof(float) * 3, sizeof(uint32_t) * 1};
+    size_t lItemSizes[] = {sizeof(float) * 3, sizeof(uint8_t) * 1};
+
+    //Initialize edges geometry
+    mRenderableLabyrinth = new Renderable(mLabyrinthShader, 1, lItemSizes, lVertexCount);
+
+    //Initialize nodes geometry
+    mRenderableNodes = new Renderable(mNodeShader, 2, lItemSizes, mMazeGeometryParameters.Height * mMazeGeometryParameters.Width * mMazeDrawer->GetVertexCountPerNode());
+
+    mRenderableLongestPath = new Renderable(mPathShader, 1, lItemSizes, 0);
+
+    {
+        uint8_t lBaseIndex = 10;
+
+        std::vector<Vector3f> lCollapsedVertices =
         {
             {-1.f, -1.f, -1.f},//0
             {1.f, -1.f, -1.f},//1
@@ -254,62 +323,36 @@ int32_t BalyrinthGeneratorWindow::Init()
             {-1.f, 1.f, -1.f},//2
             {1.f, 1.f, -1.f},//3
 
-            {-1.f, -1.f, -1.f},//0
-            {-1.f, 1.f, -1.f},//2
-
-            {1.f, -1.f, -1.f},//1
-            {1.f, 1.f, -1.f},//3
-
             {-1.f, -1.f, 1.f},//4
             {1.f, -1.f, 1.f},//5
 
             {-1.f, 1.f, 1.f},//6
             {1.f, 1.f, 1.f},//7
-
-            {-1.f, -1.f, 1.f},//4
-            {-1.f, 1.f, 1.f},//6
-
-            {1.f, -1.f, 1.f},//5
-            {1.f, 1.f, 1.f},//7
-
-
-            {-1.f, -1.f, -1.f},//0
-            {-1.f, -1.f, 1.f},//4
-
-            {1.f, -1.f, -1.f},//1
-            {1.f, -1.f, 1.f},//5
-
-            {1.f, 1.f, -1.f},//3
-            {1.f, 1.f, 1.f},//7
-
-            {-1.f, 1.f, -1.f},//2
-            {-1.f, 1.f, 1.f},//6
-
-
         };
 
-        uint8_t lBaseIndex = 6;
-
-        std::vector<uint8_t> lColIndices =
+        std::vector<uint16_t> lEdgeIndices =
         {
-            uint8_t(lBaseIndex + 0), uint8_t(lBaseIndex + 1), uint8_t(lBaseIndex + 2), uint8_t(lBaseIndex + 3),
-            uint8_t(lBaseIndex + 0), uint8_t(lBaseIndex + 2), uint8_t(lBaseIndex + 1), uint8_t(lBaseIndex + 3),
-            uint8_t(lBaseIndex + 4), uint8_t(lBaseIndex + 5), uint8_t(lBaseIndex + 6), uint8_t(lBaseIndex + 7),
-            uint8_t(lBaseIndex + 4), uint8_t(lBaseIndex + 6), uint8_t(lBaseIndex + 5), uint8_t(lBaseIndex + 7),
-            uint8_t(lBaseIndex + 0), uint8_t(lBaseIndex + 4), uint8_t(lBaseIndex + 1), uint8_t(lBaseIndex + 5),
-            uint8_t(lBaseIndex + 3), uint8_t(lBaseIndex + 7), uint8_t(lBaseIndex + 2), uint8_t(lBaseIndex + 6),
+            0, 1, 2, 3,
+            0, 2, 1, 3,
+            4, 5, 6, 7,
+            4, 6, 5, 7,
+            0, 4, 1, 5,
+            3, 7, 2, 6,
         };
 
-        mCubeVao = new Vao;
+        std::vector<uint8_t> lCollapsedColIndices =
+        {
+            uint8_t(lBaseIndex + 0),
+            uint8_t(lBaseIndex + 1),
+            uint8_t(lBaseIndex + 2),
+            uint8_t(lBaseIndex + 3),
+            uint8_t(lBaseIndex + 4),
+            uint8_t(lBaseIndex + 5),
+            uint8_t(lBaseIndex + 6),
+            uint8_t(lBaseIndex + 7),
+        };
 
-        mCubeVBufs = new ArrayBuffer * [2];
-        mCubeVBufs[0] = new ArrayBuffer(24 * sizeof(float) * 3, BufferUsage::Dynamic, lVertices.data());
-        mCubeVBufs[1] = new ArrayBuffer(24 * sizeof(uint8_t), BufferUsage::Dynamic, lColIndices.data());
-        mCubeVao->Init(mShader, mCubeVBufs);
-
-
-
-
+        mCubeMesh = new RenderableMesh(mNodeShader, lCollapsedVertices, lCollapsedColIndices, lEdgeIndices, GeometryType::Lines);
     }
 
     delete lVertexShader;
@@ -317,7 +360,7 @@ int32_t BalyrinthGeneratorWindow::Init()
 
     mMainTransform.SetScale(100.f);
 
-    mCurrentPositionInBuffer = 0;
+    mRenderableLabyrinth->SetItemCount(0);
     mVerticesToUpload.clear();
 
     Resize(Vector2i{ (int32_t)GetWidth(), (int32_t)GetHeight() });
@@ -397,7 +440,13 @@ int32_t BalyrinthGeneratorWindow::Event(SDL_Event *pEvent)
 
 int32_t BalyrinthGeneratorWindow::Iterate()
 {
-    mLabyrinthStepper.ProcessStep(mConnectionPerFrame);
+    if (mConnectionPerSecond != 0.)
+    {
+        int32_t lConnectionCountToProcess = mConnectionPerSecond * mElapsedTime;
+        mElapsedTime += GetLastFrameDuration();
+        mElapsedTime -= (lConnectionCountToProcess / mConnectionPerSecond);
+        mLabyrinthStepper.ProcessStep(lConnectionCountToProcess, 0.01f);
+    }
 
     ProcessImGui();
 
@@ -408,7 +457,10 @@ void BalyrinthGeneratorWindow::Quit()
 {
     SaveColorConfiguration();
 
-    delete mShader;
+    delete mLabyrinthShader;
+    delete mNodeShader;
+    delete mPathShader;
+
     delete mMatricesUbo;
     delete mModelsUbo;
     delete mColorsUbo;
@@ -418,62 +470,49 @@ void BalyrinthGeneratorWindow::Render()
 {
     if (mNeedToCleanGeometry)
     {
-        uint32_t lVerticesCount = (((mMazeGeometryParameters.Height * mMazeGeometryParameters.Width) - 1) + (mMazeGeometryParameters.Height + mMazeGeometryParameters.Width) * 2) * 6;
-        mLabyrinthVBufs[0]->Upload(lVerticesCount * sizeof(float) * 3, nullptr);
+        uint32_t lMaxVertexCount = ((mMazeGeometryParameters.Height * mMazeGeometryParameters.Width) - 1) * mMazeDrawer->GetVertexCountPerEdge();
 
-        std::vector<uint8_t> lTempColorIndex(lVerticesCount, 0);
-        mLabyrinthVBufs[1]->Upload(lVerticesCount * sizeof(uint8_t), lTempColorIndex.data());
+        //TODO: use a different shader instead of uploading a color index array
+        mRenderableLabyrinth->SetItemCount(lMaxVertexCount);
 
-        mNodesVBufs[0]->Upload((mMazeGeometryParameters.Height * mMazeGeometryParameters.Width) * 6 * sizeof(float) * 3, nullptr);
-        mNodesVBufs[1]->Upload(mNodesNeigborCount.size() * sizeof(uint8_t), mNodesNeigborCount.data());
+        mRenderableNodes->SetItemCount(mMazeGeometryParameters.Height * mMazeGeometryParameters.Width * mMazeDrawer->GetVertexCountPerNode());
 
-        mPathVertexCount = 0;
-
-        mPathVBufs[0]->Upload(0, nullptr);
-        mPathVBufs[1]->Upload(0, nullptr);
-
-        mCurrentPositionInBuffer = 0;
-        mCurrentPositionInNodesBuffer = 0;
+        mRenderableLongestPath->SetItemCount(0);
         mNeedToCleanGeometry = false;
     }
 
     if (!mVerticesToUpload.empty())
     {
-        uint32_t lSize = mVerticesToUpload.size() * sizeof(float);
-        mLabyrinthVBufs[0]->PartialUpload(mCurrentPositionInBuffer, lSize, mVerticesToUpload.data());
-        mCurrentPositionInBuffer += lSize;
+        size_t lVertexCountToUpload = mVerticesToUpload.size() / 3;
+
+        mRenderableLabyrinth->Append(0, lVertexCountToUpload, mVerticesToUpload.data());
 
         mVerticesToUpload.clear();
     }
 
     if (!mForNodesVerticesToUpload.empty())
     {
-        uint32_t lSize = mForNodesVerticesToUpload.size() * sizeof(float);
-        mNodesVBufs[0]->PartialUpload(mCurrentPositionInNodesBuffer, lSize, mForNodesVerticesToUpload.data());
-        mCurrentPositionInNodesBuffer += lSize;
-            
-        //put it in another conditionnal ?
-        mNodesVBufs[1]->Upload(mNodesNeigborCount.size() * sizeof(uint8_t), mNodesNeigborCount.data());
+        size_t lVertexCountToUpload = mForNodesVerticesToUpload.size() / 3;
+
+        mRenderableNodes->Append(0, lVertexCountToUpload, mForNodesVerticesToUpload.data());
+        mRenderableNodes->Update(1, 0, mRenderableNodes->GetMaxVertexCount(), mNodesNeighborCount.data());
 
         mForNodesVerticesToUpload.clear();
     }
 
     if (!mForPathVerticesToUpload.empty())
     {
-        uint32_t lSize = mForPathVerticesToUpload.size() * sizeof(float);
-        mPathVertexCount = mForPathVerticesToUpload.size() / 3;
-
-        std::vector<uint8_t> lTempColorIndex(mForPathVerticesToUpload.size(), 5);
-
-        mPathVBufs[0]->Upload(lSize, mForPathVerticesToUpload.data());
-        mPathVBufs[1]->Upload(mForPathVerticesToUpload.size(), lTempColorIndex.data());
+        size_t lVertexCountToUpload = mForPathVerticesToUpload.size() / 3;
+        mRenderableLongestPath->SetItemCount(lVertexCountToUpload);
+        mRenderableLongestPath->Append(0, lVertexCountToUpload, mForPathVerticesToUpload.data());
 
         mForPathVerticesToUpload.clear();
     }
 
     {
-        float lHOffset = mMazeGeometryParameters.Width;
-        float lVOffset = mMazeGeometryParameters.Height;
+        Vector3f lSpaceSize = mShapeProvider->GetSpaceSize();
+        float lHOffset = lSpaceSize.X;
+        float lVOffset = lSpaceSize.Y;
 
         Transformf lTransform = mMainTransform;
 
@@ -519,69 +558,31 @@ void BalyrinthGeneratorWindow::Render()
     mModelsUbo->UpdateGpu();
     mColorsUbo->UpdateGpu();
 
-    Binder lShaderBinder(*mShader);
-
     {
-        mShader->UpdateUniform("model_index", 0);
-
-        //{
-        //    Binder lCubeBinder(*mCubeVao);
-        //    glDrawArrays(GL_LINES, 0, 24);
-        //}
-
-#if 1
-        if (mRenderEdges)
-        {
-            Binder lEdgesBinder(*mLabyrinthVao);
-            glDrawArrays(GL_TRIANGLES, 0, mCurrentPositionInBuffer / (sizeof(float)*3));
-        }
-
-        if (mRenderCells)
-        {
-            Binder lCellsBider(*mNodesVao);
-            glDrawArrays(GL_TRIANGLES, 0, mCurrentPositionInNodesBuffer / (sizeof(float) * 3));
-        }
-
-        if (mRenderPath)
-        {
-            Binder lPathBinder(*mPathVao);
-            glDrawArrays(GL_TRIANGLES, 0, mPathVertexCount);
-        }
-
-        if (mShowNeighbors)
-        {
-            for (uint32_t i = 0; i < 8; ++i)
-            {
-                //Binder lNeighborShaderBinder(*mShaders[i]);
-
-                mShader->UpdateUniform("model_index", i+1);
-
-                if (mRenderEdges)
-                {
-                    Binder lEdgesBinder(*mLabyrinthVao);
-                    glDrawArrays(GL_TRIANGLES, 0, mCurrentPositionInBuffer / (sizeof(float) * 3));
-                }
-
-                if (mRenderCells)
-                {
-                    Binder lCellsBider(*mNodesVao);
-                    glDrawArrays(GL_TRIANGLES, 0, mCurrentPositionInNodesBuffer / (sizeof(float) * 3));
-                }
-
-                if (mRenderPath)
-                {
-                    Binder lPathBinder(*mPathVao);
-                    glDrawArrays(GL_TRIANGLES, 0, mPathVertexCount);
-                }
-
-                //Binder lNeighborsEdgesBinder(*mVaos[i]);
-                //glDrawArrays(GL_TRIANGLES, 0, mCurrentPositionInBuffer / (sizeof(float) * 3));
-            }
-        }
-#endif
+        //Mémoire pour un Node: 6 * (3 * 4 + 1) = 78 octets 
+        //Mémoire avec liste: 4 * (3 * 4 + 1) + 6 * 2 = 64 octets 
     }
 
-    //mShader->Deuse();
+    if (mRenderEdges)
+    {
+        RenderItem(mLabyrinthShader, mRenderableLabyrinth);
+    }
+
+    if (mRenderCells)
+    {
+        RenderItem(mNodeShader, mRenderableNodes);
+    }
+
+    if (mRenderPath)
+    {
+        RenderItem(mPathShader, mRenderableLongestPath);
+    }
+
+    if (mShowWireCube)
+    {
+        Binder lShaderBinder(*mNodeShader);
+        mCubeMesh->Render();
+    }
 
     glDisable(GL_BLEND);
 }
@@ -614,41 +615,58 @@ void BalyrinthGeneratorWindow::ProcessImGui()
         {
             bool lChanged = false;
 
-            ImGui::Text("%f fps.", ImGui::GetIO().Framerate);
-
             bool lDrawParamChanged = false;
-            if (ExecuteCombobox("Shape Draw mode", mShapeDrawModes))
-            {//HACK
-                //mMazeGeometryParameters.ViewOffset = { 0, 0 };
-                mLabyrinthStepper.SetUpdateListener(mShapeDrawModes.Item());
-                lDrawParamChanged = true;
+            bool lUpdateMazeDrawerParameters = false;
+
+            if (ImGui::CollapsingHeader("Maze Drawer"))
+            {
+                lUpdateMazeDrawerParameters |= ImGui::Checkbox("Contiguous Draw", &mContiguousDraw);
+                //lUpdateMazeDrawerParameters |= ExecuteCombobox("Shape Mode", mShapeModes);
+                lUpdateMazeDrawerParameters |= ExecuteCombobox("Node Shape", mNodeShapeModes);
+                if (lUpdateMazeDrawerParameters)
+                {//HACK
+                    //mMazeGeometryParameters.ViewOffset = { 0, 0 };
+                    //mLabyrinthStepper.SetUpdateListener(mShapeDrawModes.Item());
+                    mMazeDrawer->SetParameters({ mContiguousDraw/*mShapeModes.Item()*/, mNodeShapeModes.Item() });
+                    lDrawParamChanged = true;
+                }
             }
 
             lChanged |= ExecuteCombobox("Shape", mShapeGenerators);
 
-            lChanged |= ExecuteCombobox("Algorithm", mAlgorithms);
+            if (ImGui::CollapsingHeader("Generation Parameters"))
+            {
+                lChanged |= ExecuteCombobox("Room Select", mRoomSelectMode);
+                lChanged |= ExecuteCombobox("Backtrack", mBacktrackModes);
+                lChanged |= ExecuteCombobox("Compute Direction", mComputeDirectionModes);
+                lChanged |= ImGui::DragInt("Corridor Min Length", &mCorridorMinLength);
+                lChanged |= ImGui::DragInt("Corridor Max Length", &mCorridorMaxLength);
+            }
 
-            lChanged |= ImGui::DragScalar("Width", ImGuiDataType_::ImGuiDataType_U64, &mMazeGeometryParameters.Width, .2f, &mMin, &mMax);
-            lChanged |= ImGui::DragScalar("Height", ImGuiDataType_::ImGuiDataType_U64, &mMazeGeometryParameters.Height, .2f, &mMin, &mMax);
-            ImGui::DragScalar("C/Frame", ImGuiDataType_::ImGuiDataType_U64, &mConnectionPerFrame, .2f, &mMin, &mMax);
+            lChanged |= ImGui::DragInt("Width", &mMazeGeometryParameters.Width, .2f, 1, 300);
+            lChanged |= ImGui::DragInt("Height", &mMazeGeometryParameters.Height, .2f, 1, 300);
+            ImGui::DragFloat("C/Second", &mConnectionPerSecond, .1f, .1f, 1000000.f);
 
             ImGui::Checkbox("Show Cells", &mRenderCells);
             ImGui::Checkbox("Show Edges", &mRenderEdges);
             ImGui::Checkbox("Show Path", &mRenderPath);
 
-            lDrawParamChanged |= ImGui::DragFloat("Point Width", &mMazeGeometryParameters.PointWidth, 0.005f, .005f, 1.1f);
-            lDrawParamChanged |= ImGui::DragFloat("Line Width", &mMazeGeometryParameters.LineWidth, 0.005f, .005f, 1.1f);
+            lDrawParamChanged |= ImGui::DragFloat("Node Width", &mMazeGeometryParameters.NodeWidth, 0.005f, .005f, 1.f);
+            lDrawParamChanged |= ImGui::DragFloat("Edge Width", &mMazeGeometryParameters.EdgeWidth, 0.005f, .005f, 2.f);
 
-            ImGui::ColorEdit4("Background Color", (&mBackgroundColor.R));
-            ImGui::ColorEdit4("Lines Color", (&mColors[0].R));
-
-            for (size_t i = 1; i < 5; ++i)
+            if (ImGui::CollapsingHeader("Colors"))
             {
-                std::string lNumber = std::to_string(i);
+                ImGui::ColorEdit4("Background Color", (&mBackgroundColor.R));
+                ImGui::ColorEdit4("Lines Color", (&mColors[0].R));
 
-                ImGui::ColorEdit4(("Node Color " + lNumber).c_str(), (&mColors[i].R));
+                for (size_t i = 1; i < 9; ++i)
+                {
+                    std::string lNumber = std::to_string(i);
+
+                    ImGui::ColorEdit4(("Node Color " + lNumber).c_str(), (&mColors[i].R));
+                }
+                ImGui::ColorEdit4("Path Color", (&mColors[9].R));
             }
-            ImGui::ColorEdit4("Path Color", (&mColors[5].R));
 
             ImGui::Checkbox("Show neighbors", &mShowNeighbors);
 
@@ -674,40 +692,83 @@ void BalyrinthGeneratorWindow::ProcessImGui()
             {
                 mLabyrinthStepper.ForceRedraw();
             }
+
+            if (ImGui::Button("Regenerate"))
+            {
+                RegenerateLabyrinth();
+            }
+
+            ImGui::SameLine();
+            ImGui::Checkbox("Keep this seed", &mKeepSeed);
+
+            //glGetInteger64v(GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX, );
+
+            //GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX;
+
+#if 1// debug matrices
+            if (ImGui::CollapsingHeader("3D"))
+            {
+                ImGui::Checkbox("Show Cube", &mShowWireCube);
+
+                for (size_t i = 0; i < 8; ++i)
+                {
+                    std::string lNumber = std::to_string(i);
+
+                    ImGui::ColorEdit4(("Vertex Color " + lNumber).c_str(), (&mColors[10 + i].R));
+                }
+
+                mQuaternion = mMainTransform.GetOrientation();
+
+                if (ImGui::DragFloat4("Quat", &mQuaternion.X, 0.001f))
+                {
+                    mQuaternion = mQuaternion.Normalized();
+                    mMainTransform.SetOrientation(mQuaternion);
+                }
+
+                Matrix4f lMatrix = mMainTransform.GetMatrix();
+
+                ImGui::DragFloat4("##Mat0", lMatrix[0].Array(), 0.001f);
+                ImGui::DragFloat4("##Mat1", lMatrix[1].Array(), 0.001f);
+                ImGui::DragFloat4("##Mat2", lMatrix[2].Array(), 0.001f);
+                ImGui::DragFloat4("##Mat3", lMatrix[3].Array(), 0.001f);
+            }
+#endif
         }
-
-        if (ImGui::Button("Regenerate"))
-        {
-            RegenerateLabyrinth();
-        }
-
-        ImGui::SameLine();
-        ImGui::Checkbox("Keep this seed", &mKeepSeed);
-
-        for (size_t i = 0; i < 8; ++i)
-        {
-            std::string lNumber = std::to_string(i);
-
-            ImGui::ColorEdit4(("Vertex Color " + lNumber).c_str(), (&mColors[6+i].R));
-        }
-
-        mQuaternion = mMainTransform.GetOrientation();
-
-        if (ImGui::DragFloat4("Quat", &mQuaternion.X, 0.001f))
-        {
-            mQuaternion = mQuaternion.Normalized();
-            mMainTransform.SetOrientation(mQuaternion);
-        }
-
-        Matrix4f lMatrix = mMainTransform.GetMatrix();
-
-        ImGui::DragFloat4("##Mat0", lMatrix[0].Array(), 0.001f);
-        ImGui::DragFloat4("##Mat1", lMatrix[1].Array(), 0.001f);
-        ImGui::DragFloat4("##Mat2", lMatrix[2].Array(), 0.001f);
-        ImGui::DragFloat4("##Mat3", lMatrix[3].Array(), 0.001f);
 
         ImGui::End();
     }
+
+    if (ImGui::Begin("Graphics State"))
+    {
+        ImGui::Text("%s", mGraphicsState.GetRendererName());
+
+        float lNormalizedMemoryUsed = 0.f;
+        const char* lMemoryUsageText = nullptr;
+
+        if (mGraphicsState.GetMemoryUsage(lNormalizedMemoryUsed, &lMemoryUsageText))
+        {
+            ImGui::ProgressBar(lNormalizedMemoryUsed, ImVec2(-FLT_MIN, 0), lMemoryUsageText);
+        }
+
+        //TODO: create something to permit telemetry here
+        size_t lVerticesCount =
+            mRenderableLabyrinth->GetVertexCount() +
+            mRenderableNodes->GetVertexCount() +
+            mRenderableLongestPath->GetVertexCount();
+
+        size_t lTriangleCount = lVerticesCount / 3;
+
+        size_t lMemoryUsed = lVerticesCount * sizeof(float) * 3;
+
+        lMemoryUsed /= (1024 * 1024);
+
+        ImGui::Text("%i vertices / %i triangles", lVerticesCount, lTriangleCount);
+
+        ImGui::Text("Graphics Memory used: %i MB", lMemoryUsed);
+
+        ImGui::Text("%.1f fps.", ImGui::GetIO().Framerate);
+    }
+    ImGui::End();
 }
 
 void BalyrinthGeneratorWindow::InternalUpdateTopology()
@@ -723,10 +784,12 @@ void BalyrinthGeneratorWindow::InternalUpdateTopology()
     };
 
     mShapeProvider = ((ShapeGenerator*)mShapeGenerators.Item())(lParameters);
+    mMazeGeometryParameters.Width = lParameters.Params[0].ValueAsInteger32;
+    mMazeGeometryParameters.Height = lParameters.Params[1].ValueAsInteger32;
 
-    mLabyrinthStepper.UpdateTopology(mShapeProvider->GetTopology());
+    mLabyrinthStepper.UpdateTopology(mShapeProvider->GetTopology(), mShapeProvider->GetRoomNeighborhood());
     mCurrentTopology = mLabyrinthStepper.GetTopology();
-    mLabyrinthStepper.UpdateAlgorithm(mAlgorithms.Item());
+    mLabyrinthStepper.UpdateAlgorithm({ mRoomSelectMode.Item(), mBacktrackModes.Item(), mComputeDirectionModes.Item(), mCorridorMinLength, mCorridorMaxLength });
 
     delete[] lParameters.Params;
 }
@@ -776,4 +839,21 @@ void BalyrinthGeneratorWindow::SaveColorConfiguration()
     }
 
     SaveSetting(lColors, sizeof(lColors), "Colors.setting");
+}
+
+void BalyrinthGeneratorWindow::RenderItem(ShaderProgram* pProgram, Renderable* pRenderable)
+{
+    Binder lShaderBinder(*pProgram);
+    pProgram->UpdateUniform("model_index", 0);
+    pRenderable->Draw();
+
+    if (mShowNeighbors)
+    {
+        for (uint32_t i = 0; i < 8; ++i)
+        {
+            pProgram->UpdateUniform("model_index", i + 1);
+
+            pRenderable->Draw();
+        }
+    }
 }

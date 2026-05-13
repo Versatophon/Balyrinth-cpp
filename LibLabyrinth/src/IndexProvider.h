@@ -9,6 +9,8 @@
 
 struct IndexProvider
 {
+	inline virtual ~IndexProvider() {};
+
 	//push index to container
 	virtual void InsertIndex(uint32_t pIndex) = 0;
 
@@ -37,6 +39,11 @@ struct QueueIndexProvider :public IndexProvider
 	//pop index from container
 	uint32_t GetInsertedIndex() override
 	{
+		if (Queue.empty())
+		{
+			return UINT32_MAX;
+		}
+
 		uint32_t lReturnValue = Queue.front(); Queue.pop();
 
 		return lReturnValue;
@@ -67,6 +74,11 @@ struct StackIndexProvider :public IndexProvider
 	//pop index from container
 	uint32_t GetInsertedIndex() override
 	{
+		if (Stack.empty())
+		{
+			return UINT32_MAX;
+		}
+
 		uint32_t lReturnValue = Stack.back(); Stack.pop_back();
 
 		return lReturnValue;
@@ -97,6 +109,11 @@ struct RandomIndexProvider :public IndexProvider
 	//pop index from container
 	uint32_t GetInsertedIndex() override
 	{
+		if (InsertedIndices.empty())
+		{
+			return UINT32_MAX;
+		}
+
 		uint32_t lRandomPosition = mRandGen->GenerateNext() % InsertedIndices.size();
 
 		uint32_t lReturnValue = InsertedIndices[lRandomPosition];

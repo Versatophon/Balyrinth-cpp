@@ -1,19 +1,19 @@
-#include "Tex.h"
+#include "Texture.h"
 
 #include <GL/glew.h>
 
-void Tex::Bind() const
+void Texture::Bind() const
 {
 	glGetIntegerv(GL_TEXTURE_BINDING_2D, (int32_t*)&mPreviousId);
 	glBindTexture(GL_TEXTURE_2D, Id);
 }
 
-void Tex::Debind() const
+void Texture::Unbind() const
 {
 	glBindTexture(GL_TEXTURE_2D, mPreviousId);
 }
 
-void Tex::Generate()
+void Texture::Generate()
 {
 	if (Id != 0)
 	{
@@ -22,7 +22,7 @@ void Tex::Generate()
 	glGenTextures(1, &Id);
 }
 
-void Tex::Destroy()
+void Texture::Destroy()
 {
 	glDeleteTextures(1, &Id);
 	Id = 0;

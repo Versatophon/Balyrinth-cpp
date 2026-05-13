@@ -1,10 +1,9 @@
 #include "BalyrinthGeneratorWindow.h"
 
+#ifndef __EMSCRIPTEN__
+#if 1//Used to easy switch between integrated/discrete graphics
 #ifdef WIN32
 #include <Windows.h>
-#endif
-
-#ifdef WIN32
 // Use discrete GPU by default.
 #ifdef __cplusplus
 extern "C" {
@@ -17,8 +16,9 @@ extern "C" {
 }
 #endif
 #endif
+#endif
 
-#include <cstdlib>
+#include <cstdlib>//EXIT_SUCCESS
 
 int main(int pArgC, char** pArgV)
 {
@@ -28,3 +28,5 @@ int main(int pArgC, char** pArgV)
 
 	return EXIT_SUCCESS;
 }
+
+#endif
