@@ -217,95 +217,10 @@ int32_t SdlApp::Iterate()
     ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
 
-#ifdef IMGUI_HAS_VIEWPORT
-    ImGuiViewport* lViewport = ImGui::GetMainViewport();
-    ImGui::SetNextWindowPos(lViewport->GetWorkPos());
-    ImGui::SetNextWindowSize(lViewport->GetWorkSize());
-    ImGui::SetNextWindowViewport(lViewport->ID);
-#else 
-    ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
-    ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
-#endif
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.f });
-    ImGui::Begin("Main", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoInputs);
-    {
-        SDL_Time lTicks;
-        SDL_DateTime lLocalTime;
-        //SDL_DateTime lUniversalTime;
-        SDL_GetCurrentTime(&lTicks);
-        SDL_TimeToDateTime(lTicks, &lLocalTime, true);
-        //SDL_TimeToDateTime(lTicks, &lUniversalTime, false);
 
-        std::string lTimeAsString = std::format("{:02d}:{:02d}:{:02d}", lLocalTime.hour, lLocalTime.minute, lLocalTime.second);
+    RenderBackgroundWindow();
 
-        ImVec2 lCursorPos = ImGui::GetCursorPos();
-        ImVec2 lContentAvail = ImGui::GetContentRegionAvail();
-
-        ImGui::GetWindowDrawList()->AddRectFilled(lCursorPos, { lCursorPos.x + lContentAvail.x, lCursorPos.y + lContentAvail.y }, ImGui::ColorConvertFloat4ToU32({ 0.f, .5f, .5f, .5f }), 5.f);
-
-        ImGui::PushFont(mTimeFont, 70.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 0.f , 0.f });
-
-        ImVec2 lTextDims = ImGui::CalcTextSize(lTimeAsString.c_str());
-        ImVec2 lTextPosition = { ImGui::GetContentRegionAvail().x - lTextDims.x, ImGui::GetContentRegionAvail().y - lTextDims.y };
-        ImVec2 lTextEndPosition = { lTextPosition.x + lTextDims.x, lTextPosition.y + lTextDims.y };
-
-        ImGui::GetWindowDrawList()->AddRectFilled(lTextPosition, lTextEndPosition, ImGui::ColorConvertFloat4ToU32({ .5f, .5f, 0.f, .5f }), 5.f);
-
-        ImGui::SetCursorPos(lTextPosition);
-        ImGui::Text("%s", lTimeAsString.c_str());
-
-        ImGui::PopStyleVar();
-        ImGui::PopFont();
-    }
-    ImGui::End();
-    ImGui::PopStyleVar();
-    ImGui::PopStyleVar();
-
-
-    if (ImGui::Begin("Control"))
-    {
-        SDL_Time lTicks;
-        SDL_DateTime lLocalTime;
-        SDL_DateTime lUniversalTime;
-        SDL_GetCurrentTime(&lTicks);
-        SDL_TimeToDateTime(lTicks, &lLocalTime, true);
-        SDL_TimeToDateTime(lTicks, &lUniversalTime, false);
-        //lTicks.
-
-        ImGui::Text("%02d:%02d:%02d", lLocalTime.hour, lLocalTime.minute, lLocalTime.second);
-        ImGui::Text("%02d:%02d:%02d", lUniversalTime.hour, lUniversalTime.minute, lUniversalTime.second);
-
-        if (mHoursTensDigit.SetValue(lLocalTime.hour / 10))
-            mHoursTensDigitChanged = !mHoursTensDigitChanged;
-
-        if (mHoursUnitsDigit.SetValue(lLocalTime.hour % 10))
-            mHoursUnitsDigitChanged = !mHoursUnitsDigitChanged;
-
-        if (mMinutesTensDigit.SetValue(lLocalTime.minute / 10))
-            mMinutesTensDigitChanged = !mMinutesTensDigitChanged;
-
-        if (mMinutesUnitsDigit.SetValue(lLocalTime.minute % 10))
-            mMinutesUnitsDigitChanged = !mMinutesUnitsDigitChanged;
-
-        if (mSecondsTensDigit.SetValue(lLocalTime.second / 10))
-            mSecondsTensDigitChanged = !mSecondsTensDigitChanged;
-
-        if (mSecondsUnitsDigit.SetValue(lLocalTime.second % 10))
-            mSecondsUnitsDigitChanged = !mSecondsUnitsDigitChanged;
-
-        ImGui::Checkbox("Hours Tens", &mHoursTensDigitChanged);
-        ImGui::Checkbox("Hours Units", &mHoursUnitsDigitChanged);
-        ImGui::Checkbox("Minutess Tens", &mMinutesTensDigitChanged);
-        ImGui::Checkbox("Minutess Units", &mMinutesUnitsDigitChanged);
-        ImGui::Checkbox("Seconds Tens", &mSecondsTensDigitChanged);
-        ImGui::Checkbox("Seconds Units", &mSecondsUnitsDigitChanged);
-
-        ImGui::Text("App path: %s", mAppPath.c_str());
-        ImGui::Text("file size: %i", int(mFileSize));
-    }
-    ImGui::End();
+    RenderControlWindow();
 
     RenderNumbersWindow();
 
@@ -376,6 +291,101 @@ void SdlApp::Initialize()
 #include "NumberMatrices.h"
 static int32_t sIndex = 0;
 static uint32_t sReroll = 1000;
+
+void SdlApp::RenderBackgroundWindow()
+{
+#ifdef IMGUI_HAS_VIEWPORT
+    ImGuiViewport* lViewport = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(lViewport->GetWorkPos());
+    ImGui::SetNextWindowSize(lViewport->GetWorkSize());
+    ImGui::SetNextWindowViewport(lViewport->ID);
+#else 
+    ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
+    ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
+#endif
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.f });
+    ImGui::Begin("Main", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoInputs);
+    {
+        SDL_Time lTicks;
+        SDL_DateTime lLocalTime;
+        //SDL_DateTime lUniversalTime;
+        SDL_GetCurrentTime(&lTicks);
+        SDL_TimeToDateTime(lTicks, &lLocalTime, true);
+        //SDL_TimeToDateTime(lTicks, &lUniversalTime, false);
+
+        std::string lTimeAsString = std::format("{:02d}:{:02d}:{:02d}", lLocalTime.hour, lLocalTime.minute, lLocalTime.second);
+
+        ImVec2 lCursorPos = ImGui::GetCursorPos();
+        ImVec2 lContentAvail = ImGui::GetContentRegionAvail();
+
+        ImGui::GetWindowDrawList()->AddRectFilled(lCursorPos, { lCursorPos.x + lContentAvail.x, lCursorPos.y + lContentAvail.y }, ImGui::ColorConvertFloat4ToU32({ 0.f, .5f, .5f, .5f }), 5.f);
+
+        ImGui::PushFont(mTimeFont, 70.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 0.f , 0.f });
+
+        ImVec2 lTextDims = ImGui::CalcTextSize(lTimeAsString.c_str());
+        ImVec2 lTextPosition = { ImGui::GetContentRegionAvail().x - lTextDims.x, ImGui::GetContentRegionAvail().y - lTextDims.y };
+        ImVec2 lTextEndPosition = { lTextPosition.x + lTextDims.x, lTextPosition.y + lTextDims.y };
+
+        ImGui::GetWindowDrawList()->AddRectFilled(lTextPosition, lTextEndPosition, ImGui::ColorConvertFloat4ToU32({ .5f, .5f, 0.f, .5f }), 5.f);
+
+        ImGui::SetCursorPos(lTextPosition);
+        ImGui::Text("%s", lTimeAsString.c_str());
+
+        ImGui::PopStyleVar();
+        ImGui::PopFont();
+    }
+    ImGui::End();
+    ImGui::PopStyleVar();
+    ImGui::PopStyleVar();
+}
+
+void SdlApp::RenderControlWindow()
+{
+    if (ImGui::Begin("Control"))
+    {
+        SDL_Time lTicks;
+        SDL_DateTime lLocalTime;
+        SDL_DateTime lUniversalTime;
+        SDL_GetCurrentTime(&lTicks);
+        SDL_TimeToDateTime(lTicks, &lLocalTime, true);
+        SDL_TimeToDateTime(lTicks, &lUniversalTime, false);
+        //lTicks.
+
+        ImGui::Text("%02d:%02d:%02d", lLocalTime.hour, lLocalTime.minute, lLocalTime.second);
+        ImGui::Text("%02d:%02d:%02d", lUniversalTime.hour, lUniversalTime.minute, lUniversalTime.second);
+
+        if (mHoursTensDigit.SetValue(lLocalTime.hour / 10))
+            mHoursTensDigitChanged = !mHoursTensDigitChanged;
+
+        if (mHoursUnitsDigit.SetValue(lLocalTime.hour % 10))
+            mHoursUnitsDigitChanged = !mHoursUnitsDigitChanged;
+
+        if (mMinutesTensDigit.SetValue(lLocalTime.minute / 10))
+            mMinutesTensDigitChanged = !mMinutesTensDigitChanged;
+
+        if (mMinutesUnitsDigit.SetValue(lLocalTime.minute % 10))
+            mMinutesUnitsDigitChanged = !mMinutesUnitsDigitChanged;
+
+        if (mSecondsTensDigit.SetValue(lLocalTime.second / 10))
+            mSecondsTensDigitChanged = !mSecondsTensDigitChanged;
+
+        if (mSecondsUnitsDigit.SetValue(lLocalTime.second % 10))
+            mSecondsUnitsDigitChanged = !mSecondsUnitsDigitChanged;
+
+        ImGui::Checkbox("Hours Tens", &mHoursTensDigitChanged);
+        ImGui::Checkbox("Hours Units", &mHoursUnitsDigitChanged);
+        ImGui::Checkbox("Minutess Tens", &mMinutesTensDigitChanged);
+        ImGui::Checkbox("Minutess Units", &mMinutesUnitsDigitChanged);
+        ImGui::Checkbox("Seconds Tens", &mSecondsTensDigitChanged);
+        ImGui::Checkbox("Seconds Units", &mSecondsUnitsDigitChanged);
+
+        ImGui::Text("App path: %s", mAppPath.c_str());
+        ImGui::Text("file size: %i", int(mFileSize));
+    }
+    ImGui::End();
+}
 
 void SdlApp::RenderNumbersWindow()
 {

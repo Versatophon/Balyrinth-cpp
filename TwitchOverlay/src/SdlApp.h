@@ -67,6 +67,8 @@ private:
 
     void Initialize();
 
+    void RenderBackgroundWindow();
+    void RenderControlWindow();
     void RenderNumbersWindow();
 
 public:
