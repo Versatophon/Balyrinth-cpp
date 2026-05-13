@@ -7,6 +7,7 @@ add_subdirectory(LibSimpleMaths)
 add_subdirectory(LibLabyrinth)
 add_subdirectory(BalyrinthGenerator)
 add_subdirectory(TwitchOverlay)
+#add_subdirectory(TwitchOverlayServer)
 
 #add_subdirectory(Mazemerizer)
 
@@ -17,6 +18,9 @@ add_subdirectory(TwitchOverlay)
 
 # install imgui with backends with vcpkg
 # vcpkg.exe install imgui[core,sdl3-binding,opengl3-binding] --recurse
+
+# install uwebsockets
+# vcpkg install uwebsockets
 
 # install emscripten
 # winget install Ninja-build.Ninja
