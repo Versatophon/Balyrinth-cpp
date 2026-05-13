@@ -29,7 +29,7 @@ SDL_AppResult SDL_AppInit(void** pAppState, int pArgC, char** pArgV)
 {
     SdlApp* lSdlApp = new SdlApp();
     *pAppState = lSdlApp;
-    return lSdlApp->Init();
+    return (SDL_AppResult)lSdlApp->Init();
 }
 
 /* This function runs when a new event (mouse input, keypresses, etc) occurs. */

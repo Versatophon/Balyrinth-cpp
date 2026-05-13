@@ -3,11 +3,8 @@
 #include <cstdint>
 #include <string>
 
-extern "C" {
-#include <SDL3/SDL_init.h>
-}
-
 struct ImFont;
+union SDL_Event;
 struct SDL_Window;
 struct SDL_GLContextState;
 
@@ -26,15 +23,16 @@ struct DecimalValueListener
     }
 };
 
+
 //SdlApp
 class SdlApp
 {
 public:
     SdlApp();
 
-    SDL_AppResult Init();
-    SDL_AppResult Event(SDL_Event* pEvent);
-    SDL_AppResult Iterate();
+    int32_t Init();
+    int32_t Event(SDL_Event* pEvent);
+    int32_t Iterate();
     void Quit();
 
 private:

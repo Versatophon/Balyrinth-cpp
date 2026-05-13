@@ -54,7 +54,7 @@ SdlApp::SdlApp()
 {
 }
 
-SDL_AppResult SdlApp::Init()
+int32_t SdlApp::Init()
 {
     SDL_SetAppMetadata("Twitch Overlay", "0.0.1", "com.versatophon.twitch_overlay");
 
@@ -147,7 +147,7 @@ SDL_AppResult SdlApp::Init()
     return SDL_APP_CONTINUE;
 }
 
-SDL_AppResult SdlApp::Event(SDL_Event* pEvent)
+int32_t SdlApp::Event(SDL_Event* pEvent)
 {
     if (!mImGuiInitialized)
     {
@@ -196,7 +196,7 @@ SDL_AppResult SdlApp::Event(SDL_Event* pEvent)
     return SDL_APP_CONTINUE;  /* carry on with the program! */
 }
 
-SDL_AppResult SdlApp::Iterate()
+int32_t SdlApp::Iterate()
 {
     if (!mImGuiInitialized)
     {
