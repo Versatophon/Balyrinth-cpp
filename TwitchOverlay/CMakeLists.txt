@@ -44,6 +44,7 @@ ENDIF()
 set(ProjectSrcs
     src/main.cpp
     src/SdlApp.h
+    src/NumberMatrices.h
     src/SdlApp.cpp
 )
 

@@ -67,6 +67,8 @@ private:
 
     void Initialize();
 
+    void RenderNumbersWindow();
+
 public:
     static bool sFSReady;
 };

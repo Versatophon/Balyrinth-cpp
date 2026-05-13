@@ -49,7 +49,6 @@ EM_JS(void, on_syncfs_failure, (), { Module._OnSyncFsFailure(); });
 
 bool SdlApp::sFSReady = false;
 
-//SdlApp
 SdlApp::SdlApp()
 {
 }
@@ -308,6 +307,8 @@ int32_t SdlApp::Iterate()
     }
     ImGui::End();
 
+    RenderNumbersWindow();
+
     //Render
     ImGui::Render();
 
@@ -372,4 +373,55 @@ void SdlApp::Initialize()
     mImGuiInitialized = true;
 }
 
-//SdlApp end
+#include "NumberMatrices.h"
+static int32_t sIndex = 0;
+static uint32_t sReroll = 1000;
+
+void SdlApp::RenderNumbersWindow()
+{
+    if (ImGui::Begin("Numbers"))
+    {
+        if (ImGui::SliderInt("Value", &sIndex, 0, 9))
+        {
+            sIndex = sIndex > 9 ? 9 : sIndex;
+            sIndex = sIndex < 0 ? 0 : sIndex;
+        }
+
+        if (++sReroll >= 120)
+        {
+            //sIndex = rand() % 10;
+            sReroll = 0;
+        }
+
+        const uint32_t lDigitCount = 10;
+        const uint8_t* lFirstLine = sNumbersMatrix + sIndex*sizeof(uint32_t);
+        const uint32_t lLineWidth = lDigitCount* sizeof(uint32_t);
+
+        const uint32_t lDotSize = 10;
+
+        ImVec2 lMin, lMax;
+
+        for (uint32_t j = 0; j < 64; ++j)
+        {
+            const uint8_t* lLine = lFirstLine + (j * lLineWidth);
+
+            lMin.y = ImGui::GetWindowPos().y + 60 + lDotSize * j;
+            lMax.y = ImGui::GetWindowPos().y + 60 + lDotSize * (j + 1);
+
+            for (uint32_t k = 0; k < sizeof(uint32_t); ++k)
+            {
+                uint8_t lQuarter = lLine[k];
+                for (uint32_t i = 0; i < 8; ++i)
+                {
+                    if (lQuarter >> (7 - i) & 0b1)
+                    {
+                        lMin.x = ImGui::GetWindowPos().x + lDotSize * (k * 8 + i);
+                        lMax.x = ImGui::GetWindowPos().x + lDotSize * (k * 8 + i + 1);
+                        ImGui::GetWindowDrawList()->AddRectFilled(lMin, lMax, ImGui::GetColorU32({1.f, 0.f, 1.f, 1.f}));
+                    }
+                }
+            }
+        }
+    }
+    ImGui::End();
+}
