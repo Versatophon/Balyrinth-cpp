@@ -291,6 +291,7 @@ void SdlApp::Initialize()
 #include "NumberMatrices.h"
 static int32_t sIndex = 0;
 static uint32_t sReroll = 1000;
+static float sDotSize = 1.f;
 
 void SdlApp::RenderBackgroundWindow()
 {
@@ -397,7 +398,13 @@ void SdlApp::RenderNumbersWindow()
             sIndex = sIndex < 0 ? 0 : sIndex;
         }
 
-        if (++sReroll >= 120)
+        if (ImGui::SliderFloat("DotSize", &sDotSize, 0.1f, 25.f))
+        {
+            sDotSize = sDotSize > 25.f ? 25.f : sDotSize;
+            sDotSize = sDotSize < .1f ? .1f : sDotSize;
+        }
+
+        if (++sReroll >= 12)
         {
             //sIndex = rand() % 10;
             sReroll = 0;
@@ -407,16 +414,14 @@ void SdlApp::RenderNumbersWindow()
         const uint8_t* lFirstLine = sNumbersMatrix + sIndex*sizeof(uint32_t);
         const uint32_t lLineWidth = lDigitCount* sizeof(uint32_t);
 
-        const uint32_t lDotSize = 10;
-
         ImVec2 lMin, lMax;
 
         for (uint32_t j = 0; j < 64; ++j)
         {
             const uint8_t* lLine = lFirstLine + (j * lLineWidth);
 
-            lMin.y = ImGui::GetWindowPos().y + 60 + lDotSize * j;
-            lMax.y = ImGui::GetWindowPos().y + 60 + lDotSize * (j + 1);
+            lMin.y = ImGui::GetWindowPos().y + 70 + sDotSize * (j + 1);
+            lMax.y = ImGui::GetWindowPos().y + 70 + sDotSize * (j + 2);
 
             for (uint32_t k = 0; k < sizeof(uint32_t); ++k)
             {
@@ -425,8 +430,8 @@ void SdlApp::RenderNumbersWindow()
                 {
                     if (lQuarter >> (7 - i) & 0b1)
                     {
-                        lMin.x = ImGui::GetWindowPos().x + lDotSize * (k * 8 + i);
-                        lMax.x = ImGui::GetWindowPos().x + lDotSize * (k * 8 + i + 1);
+                        lMin.x = ImGui::GetWindowPos().x + 30 + sDotSize * (k * 8 + i);
+                        lMax.x = ImGui::GetWindowPos().x + 30 + sDotSize * (k * 8 + i + 1);
                         ImGui::GetWindowDrawList()->AddRectFilled(lMin, lMax, ImGui::GetColorU32({1.f, 0.f, 1.f, 1.f}));
                     }
                 }
