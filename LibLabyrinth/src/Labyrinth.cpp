@@ -138,8 +138,13 @@ struct LabyrinthStepperId
 				mTopology->Clear();
 				mTotalNodeCount = mBaseTopology->GetSize();
 				mConnectedNodeCount = 1;
-				mFromIndex = mRandGen.GenerateNext() % mTotalNodeCount;
 				mGraphColoration = std::vector<uint8_t>(mTotalNodeCount, NOT_CONNECTED);
+
+				do
+				{
+					mFromIndex = mRandGen.GenerateNext() % mTotalNodeCount;
+				}
+				while (mBaseTopology->GetNode(mFromIndex)->NeighborCount() == 0);
 
 				mIndexProvider->Clear();
 				mIndexProvider->InsertIndex(mFromIndex);
@@ -164,7 +169,7 @@ struct LabyrinthStepperId
 				for (size_t i = 0; i < lDirectionCount; ++i)
 				{
 					uint32_t lNeighborIndex = mRoomNeighborhood->GetNextNode(mFromIndex, i);
-					if (lNeighborIndex != INVALID_NODE_INDEX)
+					if (lNeighborIndex != INVALID_NODE_INDEX && mBaseTopology->AreConnected(mFromIndex, lNeighborIndex))
 					{
 						if (mGraphColoration[lNeighborIndex] == NOT_CONNECTED)
 						{

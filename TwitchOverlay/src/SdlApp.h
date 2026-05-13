@@ -23,6 +23,8 @@ struct DecimalValueListener
     }
 };
 
+struct CoreData;
+
 
 //SdlApp
 class SdlApp
@@ -70,6 +72,10 @@ private:
     void RenderBackgroundWindow();
     void RenderControlWindow();
     void RenderNumbersWindow();
+
+    void GenerateTopologies();
+
+    CoreData* mCoreData = nullptr;
 
 public:
     static bool sFSReady;

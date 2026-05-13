@@ -36,6 +36,29 @@ void Topology::ConnectNodes(size_t pIndex0, size_t pIndex1)
 	}
 }
 
+void Topology::DisonnectNodes(size_t pIndex0, size_t pIndex1)
+{
+	size_t lNodeCount = mNodes.size();
+
+	if (pIndex0 < lNodeCount && pIndex1 < lNodeCount)
+	{
+		mNodes[pIndex0].RemoveNeighborIndex(pIndex1);
+		mNodes[pIndex1].RemoveNeighborIndex(pIndex0);
+	}
+}
+
+bool Topology::AreConnected(size_t pIndex0, size_t pIndex1) const
+{
+	size_t lNodeCount = mNodes.size();
+
+	if (pIndex0 < lNodeCount && pIndex1 < lNodeCount)
+	{
+		return mNodes[pIndex0].IsConnected(pIndex1);
+	}
+
+	return false;
+}
+
 size_t Topology::GetNodeConnectionCount(size_t pIndex) const
 {
 	if (pIndex < mNodes.size())

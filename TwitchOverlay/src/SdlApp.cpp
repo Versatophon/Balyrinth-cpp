@@ -47,9 +47,120 @@ EM_JS(void, on_syncfs_failure, (), { Module._OnSyncFsFailure(); });
 #include <GL/gl.h>
 #endif
 
+#include <Topology.h>
+#include <Labyrinth.h>
+#include <Shape.h>
+#include <RoomNeighborhood.h>
+#include <Vector3f.h>
+
+#include "NumberMatrices.h"
+static float sDotSize = 1.f;
+
+Parameters sParameters
+{
+    2,
+    new Parameter[2]
+    {
+        Parameter { "Width", (void*)32 },
+        Parameter { "Height", (void*)64 }
+    }
+};
+
+struct CoreData:public TopologyUpdaterListener
+{
+    LabyrinthStepper* Stepper;
+    RoomNeighborhood* Neighborhood;
+
+    int32_t NeighborCount;
+
+    int32_t Index = 0;
+
+    std::vector<Shape*> Shapes;
+    std::vector<Topology*> Topologies;
+    std::vector<ImVec2> Geometry;
+
+    CoreData():
+        Stepper(new LabyrinthStepper({RoomSelect::Last, Backtrack::Random, ComputeDirection::ForceChange, 1, 1}))
+    {
+        const uint32_t lDigitCount = 10;
+        const uint32_t lLineWidth = lDigitCount * sizeof(uint32_t);
+
+        Stepper->SetUpdateListener(this);
+
+        for (uint32_t i = 0; i < 10; ++i)
+        {
+            const uint8_t* lFirstLine = sNumbersMatrix + i * sizeof(uint32_t);
+
+            Shapes.push_back(GenerateSquaresOnRectShape(sParameters));
+            Topologies.push_back(Shapes[i]->GetTopology());
+
+            Neighborhood = Shapes[i]->GetRoomNeighborhood();
+            NeighborCount = Neighborhood->GetDirectionCount();
+
+            for (uint32_t j = 0; j < 64; ++j)
+            {
+                const uint8_t* lLine = lFirstLine + (j * lLineWidth);
+
+                for (uint32_t k = 0; k < sizeof(uint32_t); ++k)
+                {
+                    uint8_t lQuarter = lLine[k];
+                    for (uint32_t l = 0; l < 8; ++l)
+                    {
+                        if (!(lQuarter >> (7 - l) & 0b1))
+                        {
+                            for (uint32_t lDirIndex = 0; lDirIndex < NeighborCount; ++lDirIndex)
+                            {
+                                uint32_t lFromIndex = (j * 32) + (k * 8) + l;
+                                uint32_t lNextNode = Shapes[i]->GetRoomNeighborhood()->GetNextNode(lFromIndex, lDirIndex);
+
+                                if (lNextNode != UINT32_MAX)
+                                {
+                                    Topologies[i]->DisonnectNodes(lFromIndex, lNextNode);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    ~CoreData()
+    {
+        delete Stepper;
+
+        for (uint32_t i = 0; i < 10; ++i)
+        {
+            delete Shapes[i];
+        }
+    }
+
+    void AddFirstNode(uint32_t pNodeIndex) override
+    {
+        Geometry.clear();
+
+        Vector3f lPosition = Shapes[0]->GetNodeNormalizedPosition(pNodeIndex);
+
+        Geometry.push_back({ lPosition.X, lPosition.Y });
+    }
+
+    void AddEdge(uint32_t pNodeIndex0, uint32_t pNodeIndex1) override
+    {
+        Vector3f lPosition = Shapes[0]->GetNodeNormalizedPosition(pNodeIndex1);
+
+        Geometry.push_back({ lPosition.X, lPosition.Y });
+    }
+
+    void UpdaterProcessCompleted(uint32_t pPathLength, const uint32_t* pPathIndices) override
+    {
+
+    }
+};
+
 bool SdlApp::sFSReady = false;
 
-SdlApp::SdlApp()
+SdlApp::SdlApp():
+    mCoreData(new CoreData)
 {
 }
 
@@ -217,6 +328,7 @@ int32_t SdlApp::Iterate()
     ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
 
+    mCoreData->Stepper->ProcessStep(30, 0.01f);
 
     RenderBackgroundWindow();
 
@@ -236,6 +348,7 @@ int32_t SdlApp::Iterate()
 void SdlApp::Quit()
 {
     delete mImGuiIniPath;
+    delete mCoreData;
 }
 
 void SdlApp::Initialize()
@@ -288,11 +401,6 @@ void SdlApp::Initialize()
     mImGuiInitialized = true;
 }
 
-#include "NumberMatrices.h"
-static int32_t sIndex = 0;
-static uint32_t sReroll = 1000;
-static float sDotSize = 1.f;
-
 void SdlApp::RenderBackgroundWindow()
 {
 #ifdef IMGUI_HAS_VIEWPORT
@@ -306,7 +414,7 @@ void SdlApp::RenderBackgroundWindow()
 #endif
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.f });
-    ImGui::Begin("Main", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoInputs);
+    if (ImGui::Begin("Main", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoInputs))
     {
         SDL_Time lTicks;
         SDL_DateTime lLocalTime;
@@ -392,10 +500,13 @@ void SdlApp::RenderNumbersWindow()
 {
     if (ImGui::Begin("Numbers"))
     {
-        if (ImGui::SliderInt("Value", &sIndex, 0, 9))
+        if (ImGui::SliderInt("Value", &mCoreData->Index, 0, 9))
         {
-            sIndex = sIndex > 9 ? 9 : sIndex;
-            sIndex = sIndex < 0 ? 0 : sIndex;
+            mCoreData->Index = mCoreData->Index > 9 ? 9 : mCoreData->Index;
+            mCoreData->Index = mCoreData->Index < 0 ? 0 : mCoreData->Index;
+
+            mCoreData->Stepper->UpdateTopology(mCoreData->Topologies[mCoreData->Index], mCoreData->Neighborhood);
+            mCoreData->Stepper->InitiateGeneration();
         }
 
         if (ImGui::SliderFloat("DotSize", &sDotSize, 0.1f, 25.f))
@@ -404,39 +515,19 @@ void SdlApp::RenderNumbersWindow()
             sDotSize = sDotSize < .1f ? .1f : sDotSize;
         }
 
-        if (++sReroll >= 12)
-        {
-            //sIndex = rand() % 10;
-            sReroll = 0;
-        }
-
-        const uint32_t lDigitCount = 10;
-        const uint8_t* lFirstLine = sNumbersMatrix + sIndex*sizeof(uint32_t);
-        const uint32_t lLineWidth = lDigitCount* sizeof(uint32_t);
-
         ImVec2 lMin, lMax;
 
-        for (uint32_t j = 0; j < 64; ++j)
+        for (ImVec2 lNormalizedPos : mCoreData->Geometry)
         {
-            const uint8_t* lLine = lFirstLine + (j * lLineWidth);
+            lMin.y = ImGui::GetWindowPos().y + 90 + sDotSize * (lNormalizedPos.y + 0);
+            lMax.y = ImGui::GetWindowPos().y + 90 + sDotSize * (lNormalizedPos.y + 1);
 
-            lMin.y = ImGui::GetWindowPos().y + 70 + sDotSize * (j + 1);
-            lMax.y = ImGui::GetWindowPos().y + 70 + sDotSize * (j + 2);
+            lMin.x = ImGui::GetWindowPos().x + 30 + sDotSize * (lNormalizedPos.x + 0);
+            lMax.x = ImGui::GetWindowPos().x + 30 + sDotSize * (lNormalizedPos.x + 1);
 
-            for (uint32_t k = 0; k < sizeof(uint32_t); ++k)
-            {
-                uint8_t lQuarter = lLine[k];
-                for (uint32_t i = 0; i < 8; ++i)
-                {
-                    if (lQuarter >> (7 - i) & 0b1)
-                    {
-                        lMin.x = ImGui::GetWindowPos().x + 30 + sDotSize * (k * 8 + i);
-                        lMax.x = ImGui::GetWindowPos().x + 30 + sDotSize * (k * 8 + i + 1);
-                        ImGui::GetWindowDrawList()->AddRectFilled(lMin, lMax, ImGui::GetColorU32({1.f, 0.f, 1.f, 1.f}));
-                    }
-                }
-            }
+            ImGui::GetWindowDrawList()->AddRectFilled(lMin, lMax, ImGui::GetColorU32({ 1.f, 0.f, 1.f, 1.f }));
         }
+
     }
     ImGui::End();
 }

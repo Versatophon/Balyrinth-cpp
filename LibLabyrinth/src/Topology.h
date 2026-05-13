@@ -19,6 +19,9 @@ public:
 	size_t GetSize() const;
 
 	void ConnectNodes(size_t pIndex0, size_t pIndex1);
+	void DisonnectNodes(size_t pIndex0, size_t pIndex1);
+
+	bool AreConnected(size_t pIndex0, size_t pIndex1) const;
 
 	/**
 	* Get number of nodes connected

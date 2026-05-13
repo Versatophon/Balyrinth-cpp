@@ -17,6 +17,8 @@ public:
     void AddNeighborIndex(uint32_t pNeighborIndex);
     void RemoveNeighborIndex(uint32_t pNeighborIndex);
 
+    bool IsConnected(uint32_t pOtherNeigborIndex) const;
+
     void RemoveAllNeighbors();
 
     uint32_t GetNeighborIndex(uint32_t pLocalIndex) const;

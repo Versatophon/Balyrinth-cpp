@@ -50,6 +50,19 @@ void Node::RemoveNeighborIndex(uint32_t pNeighborIndex)
     }
 }
 
+bool Node::IsConnected(uint32_t pOtherNeigborIndex) const
+{
+    size_t lFoundIndex = 0;
+    for (; lFoundIndex < mNeighborCount; ++lFoundIndex)
+    {
+        if (mNeighborIndices[lFoundIndex] == pOtherNeigborIndex)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 void Node::RemoveAllNeighbors()
 {
     mNeighborCount = 0;

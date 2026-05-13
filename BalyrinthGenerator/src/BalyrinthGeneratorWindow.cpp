@@ -783,6 +783,8 @@ void BalyrinthGeneratorWindow::InternalUpdateTopology()
         }
     };
 
+    delete mShapeProvider;
+
     mShapeProvider = ((ShapeGenerator*)mShapeGenerators.Item())(lParameters);
     mMazeGeometryParameters.Width = lParameters.Params[0].ValueAsInteger32;
     mMazeGeometryParameters.Height = lParameters.Params[1].ValueAsInteger32;
