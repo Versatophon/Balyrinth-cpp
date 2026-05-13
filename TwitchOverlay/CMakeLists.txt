@@ -43,6 +43,8 @@ ENDIF()
 
 set(ProjectSrcs
     src/main.cpp
+    src/SdlApp.h
+    src/SdlApp.cpp
 )
 
 set(AllFiles
