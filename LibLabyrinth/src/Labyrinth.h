@@ -56,10 +56,8 @@ public:
 class LABYRINTH_API LabyrinthStepper
 {
 public:
-	LabyrinthStepper(GenerationParameters pGenerationParameters);
+	LabyrinthStepper(TopologyUpdaterListener* pListener, GenerationParameters pGenerationParameters);
 	~LabyrinthStepper();
-
-	void SetUpdateListener(TopologyUpdaterListener* pListener);
 
 	void UpdateTopology(const Topology* pTopology, const RoomNeighborhood* pRoomNeighborhood);
 

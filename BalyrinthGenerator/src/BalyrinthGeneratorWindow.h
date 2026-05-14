@@ -120,7 +120,7 @@ private:
     Shape* mShapeProvider = nullptr;
     const Topology* mCurrentTopology = nullptr;
 
-    LabyrinthStepper mLabyrinthStepper;
+    LabyrinthStepper* mLabyrinthStepper = nullptr;
     Seed mSeed = { 1337, 4223094740 };
     bool mKeepSeed = false;
 

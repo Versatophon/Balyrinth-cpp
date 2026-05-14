@@ -80,12 +80,10 @@ struct CoreData:public TopologyUpdaterListener
     std::vector<ImVec2> Geometry;
 
     CoreData():
-        Stepper(new LabyrinthStepper({RoomSelect::Last, Backtrack::Random, ComputeDirection::ForceChange, 1, 1}))
+        Stepper(new LabyrinthStepper(this, {RoomSelect::Fill, Backtrack::Stack, ComputeDirection::Any, 1, 1}))
     {
         const uint32_t lDigitCount = 10;
         const uint32_t lLineWidth = lDigitCount * sizeof(uint32_t);
-
-        Stepper->SetUpdateListener(this);
 
         for (uint32_t i = 0; i < 10; ++i)
         {
@@ -111,7 +109,7 @@ struct CoreData:public TopologyUpdaterListener
                             for (uint32_t lDirIndex = 0; lDirIndex < NeighborCount; ++lDirIndex)
                             {
                                 uint32_t lFromIndex = (j * 32) + (k * 8) + l;
-                                uint32_t lNextNode = Shapes[i]->GetRoomNeighborhood()->GetNextNode(lFromIndex, lDirIndex);
+                                uint32_t lNextNode = Neighborhood->GetNextNode(lFromIndex, lDirIndex);
 
                                 if (lNextNode != UINT32_MAX)
                                 {
@@ -157,11 +155,86 @@ struct CoreData:public TopologyUpdaterListener
     }
 };
 
+struct UpdatableNumber :public TopologyUpdaterListener
+{
+    CoreData* CData;
+    LabyrinthStepper* Stepper;
+    std::vector<ImVec2> Geometry;
+    DecimalValueListener ValueListener;
+    ImVec2 DisplayOffset;
+    float DotSize = 1.f;
+
+    UpdatableNumber(CoreData* pCoreData, ImVec2 pDisplayOffset):
+        CData(pCoreData),
+        Stepper(new LabyrinthStepper(this, { RoomSelect::Fill, Backtrack::Random, ComputeDirection::Any, 1, 1 })),
+        DisplayOffset(pDisplayOffset)
+    {
+
+    }
+
+    ~UpdatableNumber()
+    {
+        delete Stepper;
+    }
+
+    void SetValue(int32_t pValue)
+    {
+        if (ValueListener.SetValue(pValue))
+        {
+            Stepper->UpdateTopology(CData->Topologies[ValueListener.Value], CData->Neighborhood);
+            Stepper->InitiateGeneration();
+        }
+    }
+
+    void Draw()
+    {
+        ImVec2 lMin, lMax;
+
+        for (ImVec2 lNormalizedPos : Geometry)
+        {
+            lMin.y = ImGui::GetWindowPos().y + sDotSize * (DisplayOffset.y + lNormalizedPos.y + 0);
+            lMax.y = ImGui::GetWindowPos().y + sDotSize * (DisplayOffset.y + lNormalizedPos.y + 1);
+
+            lMin.x = ImGui::GetWindowPos().x + sDotSize * (DisplayOffset.x + lNormalizedPos.x + 0);
+            lMax.x = ImGui::GetWindowPos().x + sDotSize * (DisplayOffset.x + lNormalizedPos.x + 1);
+
+            ImGui::GetWindowDrawList()->AddRectFilled(lMin, lMax, ImGui::GetColorU32({ 1.f, 1.f, 1.f, 1.f }));
+        }
+    }
+    
+    void AddFirstNode(uint32_t pNodeIndex) override
+    {
+        Geometry.clear();
+
+        Vector3f lPosition = CData->Shapes[0]->GetNodeNormalizedPosition(pNodeIndex);
+
+        Geometry.push_back({ lPosition.X, lPosition.Y });
+    }
+
+    void AddEdge(uint32_t pNodeIndex0, uint32_t pNodeIndex1) override
+    {
+        Vector3f lPosition = CData->Shapes[0]->GetNodeNormalizedPosition(pNodeIndex1);
+
+        Geometry.push_back({ lPosition.X, lPosition.Y });
+    }
+
+    void UpdaterProcessCompleted(uint32_t pPathLength, const uint32_t* pPathIndices) override
+    {
+
+    }
+};
+
 bool SdlApp::sFSReady = false;
 
 SdlApp::SdlApp():
     mCoreData(new CoreData)
 {
+    mHoursTens = new UpdatableNumber(mCoreData, { 30, 90 });
+    mHoursUnits = new UpdatableNumber(mCoreData, { 64, 90 });
+    mMinutesTens = new UpdatableNumber(mCoreData, { 110, 90 });
+    mMinutesUnits = new UpdatableNumber(mCoreData, { 144, 90 });
+    mSecondsTens = new UpdatableNumber(mCoreData, { 190, 90 });
+    mSecondsUnits = new UpdatableNumber(mCoreData, { 224, 90 });
 }
 
 int32_t SdlApp::Init()
@@ -328,7 +401,15 @@ int32_t SdlApp::Iterate()
     ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
 
-    mCoreData->Stepper->ProcessStep(30, 0.01f);
+#if 1
+    mHoursTens->Stepper->ProcessStep(60, 0.01f);
+    mHoursUnits->Stepper->ProcessStep(60, 0.01f);
+    mMinutesTens->Stepper->ProcessStep(60, 0.01f);
+    mMinutesUnits->Stepper->ProcessStep(60, 0.01f);
+    mSecondsTens->Stepper->ProcessStep(60, 0.01f);
+    mSecondsUnits->Stepper->ProcessStep(60, 0.01f);
+#endif
+    mCoreData->Stepper->ProcessStep(60, 0.01f);
 
     RenderBackgroundWindow();
 
@@ -444,6 +525,13 @@ void SdlApp::RenderBackgroundWindow()
 
         ImGui::PopStyleVar();
         ImGui::PopFont();
+
+        mHoursTens->Draw();
+        mHoursUnits->Draw();
+        mMinutesTens->Draw();
+        mMinutesUnits->Draw();
+        mSecondsTens->Draw();
+        mSecondsUnits->Draw();
     }
     ImGui::End();
     ImGui::PopStyleVar();
@@ -464,6 +552,13 @@ void SdlApp::RenderControlWindow()
 
         ImGui::Text("%02d:%02d:%02d", lLocalTime.hour, lLocalTime.minute, lLocalTime.second);
         ImGui::Text("%02d:%02d:%02d", lUniversalTime.hour, lUniversalTime.minute, lUniversalTime.second);
+
+        mHoursTens->SetValue(lLocalTime.hour / 10);
+        mHoursUnits->SetValue(lLocalTime.hour % 10);
+        mMinutesTens->SetValue(lLocalTime.minute / 10);
+        mMinutesUnits->SetValue(lLocalTime.minute % 10);
+        mSecondsTens->SetValue(lLocalTime.second / 10);
+        mSecondsUnits->SetValue(lLocalTime.second % 10);
 
         if (mHoursTensDigit.SetValue(lLocalTime.hour / 10))
             mHoursTensDigitChanged = !mHoursTensDigitChanged;

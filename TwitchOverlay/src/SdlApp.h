@@ -7,6 +7,7 @@ struct ImFont;
 union SDL_Event;
 struct SDL_Window;
 struct SDL_GLContextState;
+struct UpdatableNumber;
 
 struct DecimalValueListener
 {
@@ -57,6 +58,15 @@ private:
     bool mMinutesUnitsDigitChanged = false;
     bool mSecondsTensDigitChanged = false;
     bool mSecondsUnitsDigitChanged = false;
+
+    UpdatableNumber* mHoursTens;
+    UpdatableNumber* mHoursUnits;
+
+    UpdatableNumber* mMinutesTens;
+    UpdatableNumber* mMinutesUnits;
+
+    UpdatableNumber* mSecondsTens;
+    UpdatableNumber* mSecondsUnits;
 
     ImFont* mTimeFont = nullptr;
 

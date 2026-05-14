@@ -378,8 +378,8 @@ struct LabyrinthStepperId
 	}
 };
 
-LabyrinthStepper::LabyrinthStepper(GenerationParameters pGenerationParameters):
-	mId(new LabyrinthStepperId)
+LabyrinthStepper::LabyrinthStepper(TopologyUpdaterListener* pListener, GenerationParameters pGenerationParameters):
+	mId(new LabyrinthStepperId{pListener})
 {
 	UpdateAlgorithm(pGenerationParameters);
 }
@@ -387,11 +387,6 @@ LabyrinthStepper::LabyrinthStepper(GenerationParameters pGenerationParameters):
 LabyrinthStepper::~LabyrinthStepper()
 {
 	delete mId;
-}
-
-void LabyrinthStepper::SetUpdateListener(TopologyUpdaterListener* pListener)
-{
-	mId->Listener = pListener;
 }
 
 void LabyrinthStepper::UpdateTopology(const Topology* pTopology, const RoomNeighborhood* pRoomNeighborhood)

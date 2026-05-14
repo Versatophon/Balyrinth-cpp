@@ -65,8 +65,8 @@ template <typename T> bool ExecuteCombobox(const char* pLabel, SelectableGroup<T
     return lChanged;
 }
 
-BalyrinthGeneratorWindow::BalyrinthGeneratorWindow(): ManagedWindow(0, nullptr),
-mLabyrinthStepper(LabyrinthStepper({ RoomSelect::Last, Backtrack::Queue, ComputeDirection::Any })),
+BalyrinthGeneratorWindow::BalyrinthGeneratorWindow():
+    ManagedWindow(0, nullptr),
     mViewport(new Viewport)
 {
     mShapeGenerators = {{{"Squares On Tore", (void*)GenerateSquaresOnToreShape},
@@ -97,7 +97,7 @@ mLabyrinthStepper(LabyrinthStepper({ RoomSelect::Last, Backtrack::Queue, Compute
 
     mMazeDrawer = new MazeDrawer(*this, {/*mShapeModes.Item()*/mContiguousDraw, mNodeShapeModes.Item()});
 
-    mLabyrinthStepper.SetUpdateListener(mMazeDrawer);
+    mLabyrinthStepper = new LabyrinthStepper(mMazeDrawer, { RoomSelect::Last, Backtrack::Queue, ComputeDirection::Any });
 
     {
         mForNodesLut.resize(mMazeGeometryParameters.Height * mMazeGeometryParameters.Width);
@@ -107,7 +107,7 @@ mLabyrinthStepper(LabyrinthStepper({ RoomSelect::Last, Backtrack::Queue, Compute
     }
 
     InternalUpdateTopology();
-    mLabyrinthStepper.InitiateGeneration(&mSeed);
+    mLabyrinthStepper->InitiateGeneration(&mSeed);
 
     mNeighborTransforms.resize(8);
 
@@ -122,6 +122,8 @@ BalyrinthGeneratorWindow::~BalyrinthGeneratorWindow()
     //}
 
     delete mMazeDrawer;
+
+    delete mLabyrinthStepper;
 
     delete mViewport;
 }
@@ -445,7 +447,7 @@ int32_t BalyrinthGeneratorWindow::Iterate()
         int32_t lConnectionCountToProcess = mConnectionPerSecond * mElapsedTime;
         mElapsedTime += GetLastFrameDuration();
         mElapsedTime -= (lConnectionCountToProcess / mConnectionPerSecond);
-        mLabyrinthStepper.ProcessStep(lConnectionCountToProcess, 0.01f);
+        mLabyrinthStepper->ProcessStep(lConnectionCountToProcess, 0.01f);
     }
 
     ProcessImGui();
@@ -603,7 +605,7 @@ void BalyrinthGeneratorWindow::RegenerateLabyrinth()
         mSeed.HiDW = (uint64_t(lRandomDevice()) << 32) + lRandomDevice();
     }
 
-    mLabyrinthStepper.InitiateGeneration(&mSeed);
+    mLabyrinthStepper->InitiateGeneration(&mSeed);
     mStartingPointIndex = INVALID_NODE_INDEX;
 }
 
@@ -690,7 +692,7 @@ void BalyrinthGeneratorWindow::ProcessImGui()
 
             if (lDrawParamChanged)
             {
-                mLabyrinthStepper.ForceRedraw();
+                mLabyrinthStepper->ForceRedraw();
             }
 
             if (ImGui::Button("Regenerate"))
@@ -789,9 +791,9 @@ void BalyrinthGeneratorWindow::InternalUpdateTopology()
     mMazeGeometryParameters.Width = lParameters.Params[0].ValueAsInteger32;
     mMazeGeometryParameters.Height = lParameters.Params[1].ValueAsInteger32;
 
-    mLabyrinthStepper.UpdateTopology(mShapeProvider->GetTopology(), mShapeProvider->GetRoomNeighborhood());
-    mCurrentTopology = mLabyrinthStepper.GetTopology();
-    mLabyrinthStepper.UpdateAlgorithm({ mRoomSelectMode.Item(), mBacktrackModes.Item(), mComputeDirectionModes.Item(), mCorridorMinLength, mCorridorMaxLength });
+    mLabyrinthStepper->UpdateTopology(mShapeProvider->GetTopology(), mShapeProvider->GetRoomNeighborhood());
+    mCurrentTopology = mLabyrinthStepper->GetTopology();
+    mLabyrinthStepper->UpdateAlgorithm({ mRoomSelectMode.Item(), mBacktrackModes.Item(), mComputeDirectionModes.Item(), mCorridorMinLength, mCorridorMaxLength });
 
     delete[] lParameters.Params;
 }
