@@ -18,8 +18,6 @@ typedef HiResTime::time_point TimePoint;
 #define ALREADY_IN_SET 1
 #define NO_MORE_CONNECTION_POSSIBLE 2
 
-#define USE_STATE_MACHINE 1
-
 struct Edge
 {
 	uint32_t FromIndex;
@@ -131,10 +129,9 @@ struct LabyrinthStepperId
 			case StepperState::Idle:
 				//Nothing to do here
 			break;
-
 			case StepperState::ChooseInitialRoom:
+			{
 				//std::cout << "Init" << std::endl;
-
 				mTopology->Clear();
 				mTotalNodeCount = mBaseTopology->GetSize();
 				mConnectedNodeCount = 1;
@@ -143,8 +140,7 @@ struct LabyrinthStepperId
 				do
 				{
 					mFromIndex = mRandGen.GenerateNext() % mTotalNodeCount;
-				}
-				while (mBaseTopology->GetNode(mFromIndex)->NeighborCount() == 0);
+				} while (mBaseTopology->GetNode(mFromIndex)->NeighborCount() == 0);
 
 				mIndexProvider->Clear();
 				mIndexProvider->InsertIndex(mFromIndex);
@@ -157,9 +153,8 @@ struct LabyrinthStepperId
 
 				--pExpectedConnectionCount;
 				mStepperState = StepperState::ComputeDirection;
-
+			}
 				break;
-
 			case StepperState::ComputeDirection:
 			{
 				const size_t lDirectionCount = mRoomNeighborhood->GetDirectionCount();
@@ -294,6 +289,7 @@ struct LabyrinthStepperId
 			}
 				break;
 			case StepperState::Backtrack:
+			{
 				mFromIndex = mIndexProvider->GetInsertedIndex();
 
 				if (mFromIndex == UINT32_MAX)
@@ -304,8 +300,8 @@ struct LabyrinthStepperId
 				{
 					mStepperState = StepperState::ComputeDirection;
 				}
+			}
 				break;
-
 			case StepperState::FindConnectableNode:
 			{
 				const size_t lDirectionCount = mRoomNeighborhood->GetDirectionCount();
@@ -316,15 +312,18 @@ struct LabyrinthStepperId
 				{
 					if (mGraphColoration[j] == NOT_CONNECTED)
 					{
-						for (uint32_t i = 0; i < lDirectionCount; ++i)
+						if (mBaseTopology->GetNode(j)->NeighborCount() > 0)
 						{
-							uint32_t lNeighborIndex = mRoomNeighborhood->GetNextNode(j, i);
-							if (lNeighborIndex != INVALID_NODE_INDEX)
+							for (uint32_t i = 0; i < lDirectionCount; ++i)
 							{
-								if (mGraphColoration[lNeighborIndex] != NOT_CONNECTED)
+								uint32_t lNeighborIndex = mRoomNeighborhood->GetNextNode(j, i);
+								if (lNeighborIndex != INVALID_NODE_INDEX)
 								{
-									lNextPossibleNodes.push_back(lNeighborIndex);
-									break;
+									if (mGraphColoration[lNeighborIndex] != NOT_CONNECTED)
+									{
+										lNextPossibleNodes.push_back(lNeighborIndex);
+										break;
+									}
 								}
 							}
 						}
