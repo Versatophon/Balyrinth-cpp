@@ -44,7 +44,8 @@ EM_JS(void, on_syncfs_failure, (), { Module._OnSyncFsFailure(); });
 
 #else
 #include <Windows.h>
-#include <GL/gl.h>
+//#include <GL/gl.h>
+#include <GL/glew.h>
 #endif
 
 #include <Topology.h>
@@ -55,6 +56,13 @@ EM_JS(void, on_syncfs_failure, (), { Module._OnSyncFsFailure(); });
 
 #include "NumberMatrices.h"
 static float sDotSize = 1.f;
+
+
+inline void BindTex2D(uint32_t pId) { glBindTexture(GL_TEXTURE_2D, pId); }
+inline uint32_t GenTex2D() { uint32_t lId = 0; glGenTextures(1, &lId); return lId; }
+inline void DelTex2D(uint32_t pId) { glDeleteTextures(1, &pId); }
+inline void SetTexSize(uint32_t pWidth, uint32_t pHeight) { glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, pWidth, pHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);}
+inline void SetTexMemory(uint32_t pWidth, uint32_t pHeight, void* pMemory) { glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, pWidth, pHeight, GL_RGBA, GL_UNSIGNED_BYTE, pMemory); }
 
 Parameters sParameters
 {
@@ -159,17 +167,26 @@ struct UpdatableNumber :public TopologyUpdaterListener
 {
     CoreData* CData;
     LabyrinthStepper* Stepper;
-    std::vector<ImVec2> Geometry;
+    //std::vector<ImVec2> Geometry;
     DecimalValueListener ValueListener;
     ImVec2 DisplayOffset;
     float DotSize = 1.f;
 
+    uint32_t TexId;
+    std::vector<uint8_t> ImageMemory;
+    bool NeedToUpload = false;
+
     UpdatableNumber(CoreData* pCoreData, ImVec2 pDisplayOffset):
         CData(pCoreData),
         Stepper(new LabyrinthStepper(this, { RoomSelect::Fill, Backtrack::Random, ComputeDirection::Any, 1, 1 })),
-        DisplayOffset(pDisplayOffset)
+        DisplayOffset(pDisplayOffset),
+        TexId(GenTex2D())
     {
+        BindTex2D(TexId);
+        SetTexSize(32, 64);
+        BindTex2D(0);
 
+        ImageMemory.resize(32 * 64 * 4);
     }
 
     ~UpdatableNumber()
@@ -190,6 +207,7 @@ struct UpdatableNumber :public TopologyUpdaterListener
     {
         ImVec2 lMin, lMax;
 
+#if 0
         for (ImVec2 lNormalizedPos : Geometry)
         {
             lMin.y = ImGui::GetWindowPos().y + sDotSize * (DisplayOffset.y + lNormalizedPos.y + 0);
@@ -200,27 +218,54 @@ struct UpdatableNumber :public TopologyUpdaterListener
 
             ImGui::GetWindowDrawList()->AddRectFilled(lMin, lMax, ImGui::GetColorU32({ 1.f, 1.f, 1.f, 1.f }));
         }
+#endif
+
+        lMin.y = ImGui::GetWindowPos().y + sDotSize * (DisplayOffset.y);
+        lMax.y = ImGui::GetWindowPos().y + sDotSize * (DisplayOffset.y + 64);
+
+        lMin.x = ImGui::GetWindowPos().x + sDotSize * (DisplayOffset.x);
+        lMax.x = ImGui::GetWindowPos().x + sDotSize * (DisplayOffset.x + 32);
+        //ImGui::Image((ImTextureID)TexId, ImVec2(32, 64));
+        ImGui::GetWindowDrawList()->AddImage((void*)(intptr_t)TexId, lMin, lMax, ImVec2(0, 0), ImVec2(1, 1), ImGui::GetColorU32({ 1.f, 1.f, 1.f, 1.f }));
     }
     
     void AddFirstNode(uint32_t pNodeIndex) override
     {
-        Geometry.clear();
+        //Geometry.clear();
 
         Vector3f lPosition = CData->Shapes[0]->GetNodeNormalizedPosition(pNodeIndex);
 
-        Geometry.push_back({ lPosition.X, lPosition.Y });
+        //Geometry.push_back({ lPosition.X, lPosition.Y });
+
+        memset(ImageMemory.data(), 0, 32 * 64 * 4);
+
+        ((uint32_t*)ImageMemory.data())[uint32_t(lPosition.X + 32 * lPosition.Y)] = 0xFFFFFFFF;
+        NeedToUpload = true;
     }
 
     void AddEdge(uint32_t pNodeIndex0, uint32_t pNodeIndex1) override
     {
         Vector3f lPosition = CData->Shapes[0]->GetNodeNormalizedPosition(pNodeIndex1);
 
-        Geometry.push_back({ lPosition.X, lPosition.Y });
+        //Geometry.push_back({ lPosition.X, lPosition.Y });
+
+        ((uint32_t*)ImageMemory.data())[uint32_t(lPosition.X + 32 * lPosition.Y)] = 0xFFFFFFFF;
+        NeedToUpload = true;
     }
 
     void UpdaterProcessCompleted(uint32_t pPathLength, const uint32_t* pPathIndices) override
     {
+    }
 
+    void UpdateContent()
+    {
+        if (NeedToUpload)
+        {
+            BindTex2D(TexId);
+            SetTexMemory(32, 64, ImageMemory.data());
+            BindTex2D(0);
+            NeedToUpload = false;
+        }
     }
 };
 
@@ -229,12 +274,7 @@ bool SdlApp::sFSReady = false;
 SdlApp::SdlApp():
     mCoreData(new CoreData)
 {
-    mHoursTens = new UpdatableNumber(mCoreData, { 30, 90 });
-    mHoursUnits = new UpdatableNumber(mCoreData, { 64, 90 });
-    mMinutesTens = new UpdatableNumber(mCoreData, { 110, 90 });
-    mMinutesUnits = new UpdatableNumber(mCoreData, { 144, 90 });
-    mSecondsTens = new UpdatableNumber(mCoreData, { 190, 90 });
-    mSecondsUnits = new UpdatableNumber(mCoreData, { 224, 90 });
+    
 }
 
 int32_t SdlApp::Init()
@@ -327,6 +367,13 @@ int32_t SdlApp::Init()
     Initialize();
 #endif
 
+    mHoursTens = new UpdatableNumber(mCoreData, { 30, 90 });
+    mHoursUnits = new UpdatableNumber(mCoreData, { 64, 90 });
+    mMinutesTens = new UpdatableNumber(mCoreData, { 110, 90 });
+    mMinutesUnits = new UpdatableNumber(mCoreData, { 144, 90 });
+    mSecondsTens = new UpdatableNumber(mCoreData, { 190, 90 });
+    mSecondsUnits = new UpdatableNumber(mCoreData, { 224, 90 });
+
     return SDL_APP_CONTINUE;
 }
 
@@ -402,14 +449,21 @@ int32_t SdlApp::Iterate()
     ImGui::NewFrame();
 
 #if 1
-    mHoursTens->Stepper->ProcessStep(60, 0.01f);
-    mHoursUnits->Stepper->ProcessStep(60, 0.01f);
-    mMinutesTens->Stepper->ProcessStep(60, 0.01f);
-    mMinutesUnits->Stepper->ProcessStep(60, 0.01f);
-    mSecondsTens->Stepper->ProcessStep(60, 0.01f);
-    mSecondsUnits->Stepper->ProcessStep(60, 0.01f);
+    mHoursTens->Stepper->ProcessStep(60, 0.001f);
+    mHoursUnits->Stepper->ProcessStep(60, 0.001f);
+    mMinutesTens->Stepper->ProcessStep(60, 0.001f);
+    mMinutesUnits->Stepper->ProcessStep(60, 0.001f);
+    mSecondsTens->Stepper->ProcessStep(60, 0.001f);
+    mSecondsUnits->Stepper->ProcessStep(60, 0.001f);
 #endif
-    mCoreData->Stepper->ProcessStep(60, 0.01f);
+    mCoreData->Stepper->ProcessStep(60, 0.001f);
+
+    mHoursTens->UpdateContent();
+    mHoursUnits->UpdateContent();
+    mMinutesTens->UpdateContent();
+    mMinutesUnits->UpdateContent();
+    mSecondsTens->UpdateContent();
+    mSecondsUnits->UpdateContent();
 
     RenderBackgroundWindow();
 
